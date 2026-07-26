@@ -21,9 +21,6 @@ public struct Vault has key {
     lp_supply: u64,
 }
 
-/// Non-fungible receipt representing a claim on `shares` out of the
-/// vault's `lp_supply`. Owned by the depositor like a regular object --
-/// only they can redeem it, unlike a `Position` which must stay shared.
 public struct LpReceipt has key, store {
     id: UID,
     vault_id: ID,
@@ -120,4 +117,14 @@ public fun shares(receipt: &LpReceipt): u64 {
 #[test_only]
 public fun init_for_testing(ctx: &mut TxContext) {
     init(ctx)
+}
+
+public(package) fun hold_collateral(vault: &mut Vault, payment: Coin<TEST_USDC>){
+    balance::join(&mut vault.balance, coin::into_balance(payment));
+}
+
+public(package) fun pay_out(vault : &mut Vault, amount: u64, ctx: &mut TxContext) : Coin<TEST_USDC> {
+    coin::from_balance(balance::split(
+    &mut vault.balance,
+    amount), ctx)
 }
