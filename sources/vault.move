@@ -1,9 +1,3 @@
-/// The liquidity pool that acts as counterparty to every trader. LPs
-/// deposit collateral here and receive a receipt tracking their share of
-/// the pool; traders' losses become the vault's gains and vice versa.
-///
-/// No leverage, positions, or margin logic here -- this module only
-/// tracks collateral in and out of the shared pool.
 module perp_dex::vault;
 
 use sui::balance::{Self, Balance};

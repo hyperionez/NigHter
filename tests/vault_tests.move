@@ -56,8 +56,7 @@ fun second_lp_gets_proportional_shares() {
         ts::return_shared(vault);
     };
 
-    // Pool value per share hasn't changed yet (no trading activity), so a
-    // second LP depositing 500 should mint exactly 500 new shares (1:1).
+   
     scenario.next_tx(LP_TWO);
     {
         let mut vault = scenario.take_shared<Vault>();

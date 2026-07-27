@@ -22,7 +22,16 @@ fun setup(scenario: &mut ts::Scenario){
     let admin_cap = admin::mint_for_testing(scenario.ctx());
     market::create_market(&admin_cap
     , b"BTC-PERP",
-     20,    1000,500,10,10,1_000_000,50_000,scenario.ctx(),);
+     20,    
+     1000,
+     500,
+     10,
+     10,
+     1_000_000,
+     50_000,
+     b"BTC_PERP_FEED_ID",
+     60,
+     scenario.ctx(),);
     transfer::public_transfer(admin_cap, ADMIN);
     scenario.next_tx(LP);
     {

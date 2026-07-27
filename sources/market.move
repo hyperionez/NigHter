@@ -18,6 +18,8 @@ public struct Market has key{
     short_open_interest:u64,
     max_open_interest:u64,
     mock_price:u64,
+    pyth_price_feed_id : vector<u8>,
+    max_price_stanless_secs : u64,
     paused:bool,
 }
 
@@ -31,6 +33,8 @@ public fun create_market(
     close_fee_bps:u64,
     max_open_interest:u64,
     initial_mock_price: u64,
+    pyth_price_feed_id : vector<u8>,
+    max_price_stanless_secs : u64,
     ctx: &mut TxContext
 ){
     assert!(max_leverage > 0, EInvalidLeverage);
@@ -47,6 +51,8 @@ public fun create_market(
         short_open_interest: 0,
         max_open_interest,
         mock_price : initial_mock_price,
+        pyth_price_feed_id : pyth_price_feed_id,
+        max_price_stanless_secs : max_price_stanless_secs,
         paused: false,
     });
 }
@@ -85,4 +91,12 @@ public fun mock_price(market: &Market): u64 {
 
 public fun is_paused(market: &Market): bool {
     market.paused
+}
+
+public fun max_price_stanless_secs(market: &Market) : u64 {
+    market.max_price_stanless_secs
+}
+
+public fun pyth_price_feed_id(market : &Market) : vector<u8> {
+    market.pyth_price_feed_id
 }
