@@ -24,6 +24,7 @@ fun create_market_sets_all_parameters_correctly() {
     50_000,
     b"BTC_PERP_FEED_ID",
     60,
+    10,
     scenario.ctx()
     );
 
@@ -58,6 +59,7 @@ fun create_market_rejects_zero_leverage() {
     50_000,
     b"BTC_PERP_FEED_ID",
     60,
+    10,
     scenario.ctx()
     );
 
@@ -82,6 +84,7 @@ fun create_market_rejects_invalid_margin_config() {
     50_000,
     b"BTC_PERP_FEED_ID",
     60,
+    10,
     scenario.ctx()
     );
 

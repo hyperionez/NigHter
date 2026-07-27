@@ -26,6 +26,7 @@ public fun successfull_get_validated_price(){
      50_000,
      b"BTC_PERP_FEED_ID",
      60,
+     10,
      scenario.ctx());
      scenario.next_tx(ADMIN);
     {
@@ -66,6 +67,7 @@ fun mismatch_feed_id(){
     50_000,
     b"BTC_PERP_FEED_ID",
     60,
+    10,
     scenario.ctx()
     );
      scenario.next_tx(ADMIN);

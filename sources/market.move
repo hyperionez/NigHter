@@ -1,6 +1,8 @@
 module perp_dex::market;
 
 use perp_dex::admin::AdminCap;
+use sui::clock::Clock;
+
 
 const EInvalidLeverage : u64 = 0;
 const EInvalidMarginConfig : u64 = 1;
@@ -22,6 +24,10 @@ public struct Market has key{
     pyth_price_feed_id : vector<u8>,
     max_price_stanless_secs : u64,
     paused:bool,
+    cumulative_funding_long : u128,
+    cumulative_funding_short : u128,
+    last_funding_time : u64,
+    funding_rate_bps_per_hour : u64
 }
 
 public fun create_market(
@@ -36,6 +42,7 @@ public fun create_market(
     initial_mock_price: u64,
     pyth_price_feed_id : vector<u8>,
     max_price_stanless_secs : u64,
+    funding_rate_bps_per_hour : u64,
     ctx: &mut TxContext
 ){
     assert!(max_leverage > 0, EInvalidLeverage);
@@ -55,6 +62,10 @@ public fun create_market(
         pyth_price_feed_id : pyth_price_feed_id,
         max_price_stanless_secs : max_price_stanless_secs,
         paused: false,
+        cumulative_funding_long : 0,
+        cumulative_funding_short : 0,
+        last_funding_time : 0,
+        funding_rate_bps_per_hour 
     });
 }
 
@@ -82,6 +93,17 @@ public(package) fun add_short_close_interest(market: &mut Market, amount: u64){
     market.short_open_interest = market.short_open_interest - amount;
 }
 
+public(package) fun set_last_funding_time(market: &mut Market, now: u64) {
+    market.last_funding_time = now;
+}
+
+public(package) fun add_funding_index_long(market: &mut Market, delta: u128) {
+    market.cumulative_funding_long = market.cumulative_funding_long + delta;
+}
+
+public(package) fun add_funding_index_short(market: &mut Market, delta: u128) {
+    market.cumulative_funding_short = market.cumulative_funding_short + delta;
+}
 
 public fun max_leverage(market: &Market): u64 {
     market.max_leverage
@@ -125,4 +147,20 @@ public fun long_open_interest(market : &Market) : u64 {
 
 public fun short_open_interest(market : &Market) : u64 {
     market.short_open_interest
+}
+
+public fun cumulative_funding_long(market : &Market) : u128 {
+    market.cumulative_funding_long
+}
+
+public fun cumulative_funding_short(market : &Market) : u128{
+    market.cumulative_funding_short
+}
+
+public fun last_funding_time(market : &Market) : u64 {
+    market.last_funding_time
+}
+
+public fun funding_rate_bps_per_hour(market : &Market) : u64 {
+    market.funding_rate_bps_per_hour
 }
