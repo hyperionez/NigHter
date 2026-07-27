@@ -10,10 +10,6 @@ const MS_PER_HOUR : u128 = 3_600_000;
 
 public(package) fun settle_funding(market : &mut Market, clock : &Clock){
     let now = clock::timestamp_ms(clock);
-    if(market::last_funding_time(market) == 0){
-        market::set_last_funding_time(market, now);
-        return
-    };
     let elapsed = now - market::last_funding_time(market);
     if (elapsed == 0){
         return
@@ -41,7 +37,7 @@ public(package) fun settle_funding(market : &mut Market, clock : &Clock){
     market::set_last_funding_time(market, now);
 }
 
-public(package) fun funding_owned(market : &Market,
+public(package) fun funding_owed(market : &Market,
     is_long : bool,
     entry_index : u128,
     size :u64

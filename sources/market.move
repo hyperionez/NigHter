@@ -1,7 +1,7 @@
 module perp_dex::market;
 
 use perp_dex::admin::AdminCap;
-use sui::clock::Clock;
+use sui::clock::{Clock, Self};
 
 
 const EInvalidLeverage : u64 = 0;
@@ -43,6 +43,7 @@ public fun create_market(
     pyth_price_feed_id : vector<u8>,
     max_price_stanless_secs : u64,
     funding_rate_bps_per_hour : u64,
+    clock: &Clock,
     ctx: &mut TxContext
 ){
     assert!(max_leverage > 0, EInvalidLeverage);
@@ -64,7 +65,7 @@ public fun create_market(
         paused: false,
         cumulative_funding_long : 0,
         cumulative_funding_short : 0,
-        last_funding_time : 0,
+        last_funding_time : clock::timestamp_ms(clock),
         funding_rate_bps_per_hour 
     });
 }

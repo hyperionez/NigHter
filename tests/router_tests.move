@@ -11,15 +11,15 @@ use perp_dex::position::Position;
 use perp_dex::position;
 use sui::coin::{Coin, Self};
 use pyth::price_info;
-
+use sui::clock::{Self, Clock};
 
 const ADMIN : address = @0xA;
 const LP : address = @0xB1;
 const TRADER : address = @0xC1;
 
-fun setup(scenario: &mut ts::Scenario){
+fun setup(scenario: &mut ts::Scenario): Clock{
     vault::init_for_testing(scenario.ctx());
-
+    let clock = clock::create_for_testing(scenario.ctx());
     let admin_cap = admin::mint_for_testing(scenario.ctx());
     market::create_market(&admin_cap
     , b"BTC-PERP",
@@ -33,6 +33,7 @@ fun setup(scenario: &mut ts::Scenario){
      b"BTC_PERP_FEED_ID",
      60,
      10,
+     &clock,
      scenario.ctx(),);
     transfer::public_transfer(admin_cap, ADMIN);
     scenario.next_tx(LP);
@@ -42,14 +43,14 @@ fun setup(scenario: &mut ts::Scenario){
         let receipt = vault::deposit_liquidity(&mut vault,lp_payment,scenario.ctx());
         transfer::public_transfer(receipt, LP);
         ts::return_shared(vault);
-    }
+    };
+    clock
 }
 
 #[test]
 fun open_long_then_close_in_profit(){
     let mut scenario = ts::begin(ADMIN);
-    setup(&mut scenario);
-    let mut clock = sui::clock::create_for_testing(scenario.ctx());
+    let mut clock = setup(&mut scenario);
     scenario.next_tx(TRADER);
     {
         let mut market = scenario.take_shared<Market>();
@@ -68,6 +69,7 @@ fun open_long_then_close_in_profit(){
         ts::return_shared(market);
         ts::return_shared(vault);
     };
+    sui::clock::increment_for_testing(&mut clock, 3_600_000);
     scenario.next_tx(ADMIN);
     {
         let admin_cap = admin::mint_for_testing(scenario.ctx());
@@ -94,7 +96,7 @@ fun open_long_then_close_in_profit(){
     scenario.next_tx(TRADER);
     {
         let payout = scenario.take_from_sender<Coin<TEST_USDC>>();
-        assert!(coin::value(&payout) == 2_000, 0);
+        assert!(coin::value(&payout) == 2_000-10, 0);
         transfer::public_transfer(payout, TRADER);
     };
     sui::clock::destroy_for_testing(clock);
@@ -104,8 +106,7 @@ fun open_long_then_close_in_profit(){
 #[test]
 fun open_long_then_close_in_loss(){
     let mut scenario = ts::begin(ADMIN);
-    setup(&mut scenario);
-    let mut clock = sui::clock::create_for_testing(scenario.ctx());
+    let mut clock = setup(&mut scenario);
     scenario.next_tx(TRADER);
     {
         let mut market = scenario.take_shared<Market>();
@@ -123,6 +124,7 @@ fun open_long_then_close_in_loss(){
         ts::return_shared(market);
         ts::return_shared(vault);
     };
+    sui::clock::increment_for_testing(&mut clock, 3_600_000);
     scenario.next_tx(ADMIN);
     {
         let admin_cap = admin::mint_for_testing(scenario.ctx());
@@ -148,7 +150,7 @@ fun open_long_then_close_in_loss(){
     scenario.next_tx(TRADER);
     {
         let payout = scenario.take_from_sender<Coin<TEST_USDC>>();
-        assert!(coin::value(&payout) == 500, 0);
+        assert!(coin::value(&payout) == 500-10, 0);
         transfer::public_transfer(payout, TRADER);
     };
     sui::clock::destroy_for_testing(clock);
@@ -157,8 +159,7 @@ fun open_long_then_close_in_loss(){
 #[test]
 fun open_short_then_close_in_profit(){
     let mut scenario = ts::begin(ADMIN);
-    setup(&mut scenario);
-    let mut clock = sui::clock::create_for_testing(scenario.ctx());
+    let mut clock = setup(&mut scenario);
     scenario.next_tx(TRADER);
     {
         let mut market = scenario.take_shared<Market>();
@@ -176,6 +177,7 @@ fun open_short_then_close_in_profit(){
         ts::return_shared(market);
         ts::return_shared(vault);
     };
+    sui::clock::increment_for_testing(&mut clock, 3_600_000);
     scenario.next_tx(ADMIN);
     {
         let admin_cap = admin::mint_for_testing(scenario.ctx());
@@ -201,7 +203,7 @@ fun open_short_then_close_in_profit(){
     scenario.next_tx(TRADER);
     {
         let payout = scenario.take_from_sender<Coin<TEST_USDC>>();
-        assert!(coin::value(&payout) == 2_000, 0);
+        assert!(coin::value(&payout) == 2_000-10, 0);
         transfer::public_transfer(payout, TRADER);
     };
     sui::clock::destroy_for_testing(clock);

@@ -7,7 +7,7 @@ use pyth::i64;
 use perp_dex::oracle::validate_and_scale;
 use perp_dex::market::{Market, Self};
 use perp_dex::admin;
-
+use sui::clock::{Self, Clock};
 
 const ADMIN : address = @0xA;
 
@@ -15,6 +15,7 @@ const ADMIN : address = @0xA;
 public fun successfull_get_validated_price(){
     let mut scenario = ts::begin(ADMIN);
     let admin_cap = admin::mint_for_testing(scenario.ctx());
+    let mut clock = clock::create_for_testing(scenario.ctx());
     market::create_market(&admin_cap
     , b"BTC-PERP",
      20,    
@@ -27,6 +28,7 @@ public fun successfull_get_validated_price(){
      b"BTC_PERP_FEED_ID",
      60,
      10,
+     &clock,
      scenario.ctx());
      scenario.next_tx(ADMIN);
     {
@@ -47,6 +49,7 @@ public fun successfull_get_validated_price(){
         ts::return_shared(mrkt);
     };
     transfer::public_transfer(admin_cap, ADMIN);
+    clock::destroy_for_testing(clock);
     scenario.end();
 }
 
@@ -54,7 +57,7 @@ public fun successfull_get_validated_price(){
 fun mismatch_feed_id(){
     let mut scenario = ts::begin(ADMIN);
     let admin_cap = admin::mint_for_testing(scenario.ctx());
-
+    let mut clock = clock::create_for_testing(scenario.ctx());
     market::create_market(
     &admin_cap,
     b"BTC_PERP",
@@ -68,6 +71,7 @@ fun mismatch_feed_id(){
     b"BTC_PERP_FEED_ID",
     60,
     10,
+    &clock,
     scenario.ctx()
     );
      scenario.next_tx(ADMIN);
@@ -89,5 +93,6 @@ fun mismatch_feed_id(){
         ts::return_shared(mrkt);
     };
     transfer::public_transfer(admin_cap, ADMIN);
+    clock::destroy_for_testing(clock);
     scenario.end();
 }

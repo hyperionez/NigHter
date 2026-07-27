@@ -4,6 +4,7 @@ module perp_dex::market_tests;
 use sui::test_scenario::{Self as ts};
 use perp_dex::admin;
 use perp_dex::market::{Self, Market};
+use sui::clock::{Self, Clock};
 
 const ADMIN: address = @0xA;
 
@@ -11,7 +12,7 @@ const ADMIN: address = @0xA;
 fun create_market_sets_all_parameters_correctly() {
     let mut scenario = ts::begin(ADMIN);
     let admin_cap = admin::mint_for_testing(scenario.ctx());
-
+    let mut clock = clock::create_for_testing(scenario.ctx());
     market::create_market(
     &admin_cap,
     b"BTC_PERP",
@@ -25,6 +26,7 @@ fun create_market_sets_all_parameters_correctly() {
     b"BTC_PERP_FEED_ID",
     60,
     10,
+    &clock,
     scenario.ctx()
     );
 
@@ -39,6 +41,7 @@ fun create_market_sets_all_parameters_correctly() {
         ts::return_shared(market);
     };
     transfer::public_transfer(admin_cap, ADMIN);
+    clock::destroy_for_testing(clock);
     scenario.end();
 }
 
@@ -46,7 +49,7 @@ fun create_market_sets_all_parameters_correctly() {
 fun create_market_rejects_zero_leverage() {
     let mut scenario = ts::begin(ADMIN);
     let admin_cap = admin::mint_for_testing(scenario.ctx());
-
+    let mut clock = clock::create_for_testing(scenario.ctx());
     market::create_market(
     &admin_cap,
     b"BTC_PERP",
@@ -60,10 +63,12 @@ fun create_market_rejects_zero_leverage() {
     b"BTC_PERP_FEED_ID",
     60,
     10,
+    &clock,
     scenario.ctx()
     );
 
     transfer::public_transfer(admin_cap, ADMIN);
+    clock::destroy_for_testing(clock);
     scenario.end();
 }
 
@@ -71,7 +76,7 @@ fun create_market_rejects_zero_leverage() {
 fun create_market_rejects_invalid_margin_config() {
     let mut scenario = ts::begin(ADMIN);
     let admin_cap = admin::mint_for_testing(scenario.ctx());
-
+    let mut clock = clock::create_for_testing(scenario.ctx());
     market::create_market(
     &admin_cap,
     b"BTC_PERP",
@@ -85,9 +90,11 @@ fun create_market_rejects_invalid_margin_config() {
     b"BTC_PERP_FEED_ID",
     60,
     10,
+    &clock,
     scenario.ctx()
     );
 
     transfer::public_transfer(admin_cap, ADMIN);
+    clock::destroy_for_testing(clock);
     scenario.end();
 }

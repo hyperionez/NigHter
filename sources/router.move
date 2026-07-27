@@ -109,7 +109,7 @@ public(package) fun close_position_at_price(
      collateral, 
      entry_price,
      entry_funding_index)= position::destroy(position);
-    let funding_cost = funding::funding_owned(market,
+    let funding_cost = funding::funding_owed(market,
     is_long,
     entry_funding_index,
     size);
