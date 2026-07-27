@@ -10,6 +10,7 @@ use perp_dex::router;
 use perp_dex::position::Position;
 use perp_dex::position;
 use sui::coin::{Coin, Self};
+use pyth::price_info;
 
 
 const ADMIN : address = @0xA;
@@ -49,12 +50,17 @@ fun open_long_then_close_in_profit(){
     setup(&mut scenario);
     scenario.next_tx(TRADER);
     {
-        let market = scenario.take_shared<Market>();
+        let mut market = scenario.take_shared<Market>();
         let mut vault = scenario.take_shared<Vault>();
         let collateral = coin::mint_for_testing<TEST_USDC>(1_000,
         scenario.ctx());
-        router::open_position(&market,
-         &mut vault, collateral, true, 10, scenario.ctx());
+        router::open_position_at_price(&mut market,
+         &mut vault,
+          collateral,
+           true,
+            10,
+            50_000,
+             scenario.ctx());
         ts::return_shared(market);
         ts::return_shared(vault);
     };
@@ -68,10 +74,14 @@ fun open_long_then_close_in_profit(){
     };
     scenario.next_tx(TRADER);
     {
-        let market = scenario.take_shared<Market>();
+        let mut market = scenario.take_shared<Market>();
         let mut vault = scenario.take_shared<Vault>();
         let position = scenario.take_shared<Position>();
-        router::close_position(&market, &mut vault, position, scenario.ctx());
+        router::close_position_at_price(&mut market,
+         &mut vault,
+          position,
+          55_000,
+           scenario.ctx());
         ts::return_shared(market);
         ts::return_shared(vault);
     };
@@ -90,13 +100,17 @@ fun open_long_then_close_in_loss(){
     setup(&mut scenario);
     scenario.next_tx(TRADER);
     {
-        let market = scenario.take_shared<Market>();
+        let mut market = scenario.take_shared<Market>();
         let mut vault = scenario.take_shared<Vault>();
         let collateral = coin::mint_for_testing<TEST_USDC>(1_000,
         scenario.ctx());
-        router::open_position(&market,
-         &mut vault, collateral, true,
-          10, scenario.ctx());
+        router::open_position_at_price(&mut market,
+         &mut vault,
+          collateral,
+           true,
+          10, 
+          50_000,
+          scenario.ctx());
         ts::return_shared(market);
         ts::return_shared(vault);
     };
@@ -110,10 +124,13 @@ fun open_long_then_close_in_loss(){
     };
     scenario.next_tx(TRADER);
     {
-        let market = scenario.take_shared<Market>();
+        let mut market = scenario.take_shared<Market>();
         let mut vault = scenario.take_shared<Vault>();
         let position = scenario.take_shared<Position>();
-        router::close_position(&market, &mut vault, position,
+        router::close_position_at_price(&mut market,
+         &mut vault,
+          position,
+          47_500,
          scenario.ctx());
         ts::return_shared(market);
         ts::return_shared(vault);
@@ -132,13 +149,17 @@ fun open_short_then_close_in_profit(){
     setup(&mut scenario);
     scenario.next_tx(TRADER);
     {
-        let market = scenario.take_shared<Market>();
+        let mut market = scenario.take_shared<Market>();
         let mut vault = scenario.take_shared<Vault>();
         let collateral = coin::mint_for_testing<TEST_USDC>(1_000,
         scenario.ctx());
-        router::open_position(&market,
-         &mut vault, collateral, false,
-          10, scenario.ctx());
+        router::open_position_at_price(&mut market,
+         &mut vault,
+          collateral,
+           false,
+          10, 
+          50_000,
+          scenario.ctx());
         ts::return_shared(market);
         ts::return_shared(vault);
     };
@@ -152,10 +173,13 @@ fun open_short_then_close_in_profit(){
     };
     scenario.next_tx(TRADER);
     {
-        let market = scenario.take_shared<Market>();
+        let mut market = scenario.take_shared<Market>();
         let mut vault = scenario.take_shared<Vault>();
         let position = scenario.take_shared<Position>();
-        router::close_position(&market, &mut vault, position,
+        router::close_position_at_price(&mut market,
+         &mut vault,
+          position,
+          45_000,
          scenario.ctx());
         ts::return_shared(market);
         ts::return_shared(vault);

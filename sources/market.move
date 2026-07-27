@@ -5,6 +5,7 @@ use perp_dex::admin::AdminCap;
 const EInvalidLeverage : u64 = 0;
 const EInvalidMarginConfig : u64 = 1;
 const EMarketPaused : u64 = 2;
+const EOpenInterestExceeded : u64 = 3;
 
 public struct Market has key{
     id : UID,
@@ -65,6 +66,23 @@ public fun set_mock_price(market: &mut Market, _admin :&AdminCap, new_price: u64
     market.mock_price = new_price;
 }
 
+public(package) fun add_long_open_interest(market: &mut Market, amount: u64){
+    assert!(market.long_open_interest + amount <= market.max_open_interest, EOpenInterestExceeded);
+    market.long_open_interest = market.long_open_interest + amount;
+}
+public(package) fun add_short_open_interest(market: &mut Market, amount: u64){
+    market.short_open_interest = market.short_open_interest + amount;
+}
+
+public(package) fun add_long_close_interest(market: &mut Market, amount: u64){
+    market.long_open_interest = market.long_open_interest - amount;
+}
+
+public(package) fun add_short_close_interest(market: &mut Market, amount: u64){
+    market.short_open_interest = market.short_open_interest - amount;
+}
+
+
 public fun max_leverage(market: &Market): u64 {
     market.max_leverage
 }
@@ -99,4 +117,12 @@ public fun max_price_stanless_secs(market: &Market) : u64 {
 
 public fun pyth_price_feed_id(market : &Market) : vector<u8> {
     market.pyth_price_feed_id
+}
+
+public fun long_open_interest(market : &Market) : u64 {
+    market.long_open_interest
+}
+
+public fun short_open_interest(market : &Market) : u64 {
+    market.short_open_interest
 }
