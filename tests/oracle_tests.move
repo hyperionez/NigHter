@@ -16,8 +16,8 @@ public fun successfull_get_validated_price(){
     let mut scenario = ts::begin(ADMIN);
     let admin_cap = admin::mint_for_testing(scenario.ctx());
     let mut clock = clock::create_for_testing(scenario.ctx());
-    market::create_market(&admin_cap
-    , b"BTC-PERP",
+    market::create_market(&admin_cap,
+     b"BTC-PERP",
      20,    
      1000,
      500,
