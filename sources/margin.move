@@ -17,7 +17,11 @@ is_long:bool) : (bool, u64){
     (is_profit, pnl)
 }
 
-public fun calculate_margin_ratio(collateral : u64, is_profit : bool, pnl : u64, size: u64) : (bool, u64){
+public fun calculate_margin_ratio(
+ collateral : u64,
+ is_profit : bool,
+ pnl : u64,
+ size: u64) : (bool, u64){
     if(!is_profit && pnl >= collateral){
         (false, 0)
     } else {
@@ -30,12 +34,23 @@ public fun calculate_margin_ratio(collateral : u64, is_profit : bool, pnl : u64,
     }
 }
 
-public fun is_liquidatable(collateral : u64, is_profit : bool, pnl : u64, size : u64, maintenance_margin_bps : u64) : bool{
+public fun is_liquidatable(collateral : u64,
+ is_profit : bool,
+ pnl : u64,
+ size : u64,
+ maintenance_margin_bps : u64
+) : bool{
     let (is_solvent, margin_ratio_bps) = calculate_margin_ratio(collateral, is_profit, pnl, size);
     !is_solvent || margin_ratio_bps < maintenance_margin_bps
 }
 
-public fun calculate_liquidation_price(collateral : u64, entry_price : u64,size : u64, is_long : bool, maintenance_margin_bps : u64) : u64 {
+public fun calculate_liquidation_price(
+    collateral : u64,
+    entry_price : u64,
+    size : u64,
+    is_long : bool,
+    maintenance_margin_bps : u64
+) : u64 {
     let term1 = math::mul_div(entry_price , collateral ,size);
     let term2 = math::mul_div(entry_price, maintenance_margin_bps, 10_000);
     let mut liq_price : u64 = 0;
