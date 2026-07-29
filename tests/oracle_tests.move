@@ -29,6 +29,8 @@ public fun successfull_get_validated_price(){
      60,
      10,
      &clock,
+     100,
+     50,
      scenario.ctx());
      scenario.next_tx(ADMIN);
     {
@@ -72,6 +74,8 @@ fun mismatch_feed_id(){
     60,
     10,
     &clock,
+    100,
+    50,
     scenario.ctx()
     );
      scenario.next_tx(ADMIN);

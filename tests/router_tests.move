@@ -34,6 +34,8 @@ fun setup(scenario: &mut ts::Scenario): Clock{
      60,
      10,
      &clock,
+     100,
+     50,
      scenario.ctx(),);
     transfer::public_transfer(admin_cap, ADMIN);
     scenario.next_tx(LP);

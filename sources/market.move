@@ -8,6 +8,7 @@ const EInvalidLeverage : u64 = 0;
 const EInvalidMarginConfig : u64 = 1;
 const EMarketPaused : u64 = 2;
 const EOpenInterestExceeded : u64 = 3;
+const EInvalidPenaltyReward : u64 = 4;
 
 public struct Market has key{
     id : UID,
@@ -27,7 +28,9 @@ public struct Market has key{
     cumulative_funding_long : u128,
     cumulative_funding_short : u128,
     last_funding_time : u64,
-    funding_rate_bps_per_hour : u64
+    funding_rate_bps_per_hour : u64,
+    liquidation_penalty_bps : u64,
+    keeper_reward_bps : u64
 }
 
 public fun create_market(
@@ -44,10 +47,13 @@ public fun create_market(
     max_price_stanless_secs : u64,
     funding_rate_bps_per_hour : u64,
     clock: &Clock,
+    liquidation_penalty_bps : u64,
+    keeper_reward_bps : u64,
     ctx: &mut TxContext
 ){
     assert!(max_leverage > 0, EInvalidLeverage);
     assert!(initial_margin_bps > maintenance_margin_bps, EInvalidMarginConfig);
+    assert!(keeper_reward_bps <= liquidation_penalty_bps, EInvalidPenaltyReward);
     transfer::share_object(Market {
         id: object::new(ctx),
         symbol,
@@ -66,7 +72,9 @@ public fun create_market(
         cumulative_funding_long : 0,
         cumulative_funding_short : 0,
         last_funding_time : clock::timestamp_ms(clock),
-        funding_rate_bps_per_hour 
+        funding_rate_bps_per_hour,
+        liquidation_penalty_bps,
+        keeper_reward_bps
     });
 }
 
@@ -164,4 +172,12 @@ public fun last_funding_time(market : &Market) : u64 {
 
 public fun funding_rate_bps_per_hour(market : &Market) : u64 {
     market.funding_rate_bps_per_hour
+}
+
+public fun liquidation_penalty_bps(market : &Market) : u64 {
+    market.liquidation_penalty_bps
+}
+
+public fun keeper_reward_bps(market : &Market) : u64 {
+    market.keeper_reward_bps
 }

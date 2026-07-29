@@ -27,6 +27,8 @@ fun create_market_sets_all_parameters_correctly() {
     60,
     10,
     &clock,
+    100,
+    50,
     scenario.ctx()
     );
 
@@ -64,6 +66,8 @@ fun create_market_rejects_zero_leverage() {
     60,
     10,
     &clock,
+    100,
+    50,
     scenario.ctx()
     );
 
@@ -91,6 +95,8 @@ fun create_market_rejects_invalid_margin_config() {
     60,
     10,
     &clock,
+    100,
+    50,
     scenario.ctx()
     );
 
