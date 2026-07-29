@@ -1,0 +1,1 @@
+module perp_dex::treasury;
