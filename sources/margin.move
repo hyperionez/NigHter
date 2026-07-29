@@ -34,7 +34,7 @@ public fun calculate_margin_ratio(
     }
 }
 
-public fun is_liquidatable(collateral : u64,
+public fun  is_liquidatable(collateral : u64,
  is_profit : bool,
  pnl : u64,
  size : u64,
