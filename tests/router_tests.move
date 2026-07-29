@@ -12,6 +12,7 @@ use perp_dex::position;
 use sui::coin::{Coin, Self};
 use pyth::price_info;
 use sui::clock::{Self, Clock};
+use perp_dex::treasury::{Treasury, Self};
 
 const ADMIN : address = @0xA;
 const LP : address = @0xB1;
@@ -19,6 +20,7 @@ const TRADER : address = @0xC1;
 
 fun setup(scenario: &mut ts::Scenario): Clock{
     vault::init_for_testing(scenario.ctx());
+    treasury::init_for_testing(scenario.ctx());
     let clock = clock::create_for_testing(scenario.ctx());
     let admin_cap = admin::mint_for_testing(scenario.ctx());
     market::create_market(&admin_cap
@@ -57,11 +59,13 @@ fun open_long_then_close_in_profit(){
     {
         let mut market = scenario.take_shared<Market>();
         let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
         let collateral = coin::mint_for_testing<TEST_USDC>(1_000,
         scenario.ctx());
         router::open_position_at_price(
          &mut market,
          &mut vault,
+         &mut treasury,
          collateral,
          true,
          10,
@@ -70,6 +74,7 @@ fun open_long_then_close_in_profit(){
          scenario.ctx());
         ts::return_shared(market);
         ts::return_shared(vault);
+        ts::return_shared(treasury);
     };
     sui::clock::increment_for_testing(&mut clock, 3_600_000);
     scenario.next_tx(ADMIN);
@@ -84,21 +89,24 @@ fun open_long_then_close_in_profit(){
     {
         let mut market = scenario.take_shared<Market>();
         let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
         let position = scenario.take_shared<Position>();
         router::close_position_at_price(
             &mut market,
          &mut vault,
+         &mut treasury,
           position,
           55_000,
           &clock,
            scenario.ctx());
         ts::return_shared(market);
         ts::return_shared(vault);
+        ts::return_shared(treasury);
     };
     scenario.next_tx(TRADER);
     {
         let payout = scenario.take_from_sender<Coin<TEST_USDC>>();
-        assert!(coin::value(&payout) == 2_000-10, 0);
+        assert!(coin::value(&payout) == 2_000-30, 0);
         transfer::public_transfer(payout, TRADER);
     };
     sui::clock::destroy_for_testing(clock);
@@ -113,10 +121,12 @@ fun open_long_then_close_in_loss(){
     {
         let mut market = scenario.take_shared<Market>();
         let mut vault = scenario.take_shared<Vault>();
+        let mut treasury= scenario.take_shared<Treasury>();
         let collateral = coin::mint_for_testing<TEST_USDC>(1_000,
         scenario.ctx());
         router::open_position_at_price(&mut market,
          &mut vault,
+         &mut treasury,
           collateral,
            true,
           10, 
@@ -125,6 +135,7 @@ fun open_long_then_close_in_loss(){
           scenario.ctx());
         ts::return_shared(market);
         ts::return_shared(vault);
+        ts::return_shared(treasury);
     };
     sui::clock::increment_for_testing(&mut clock, 3_600_000);
     scenario.next_tx(ADMIN);
@@ -139,20 +150,23 @@ fun open_long_then_close_in_loss(){
     {
         let mut market = scenario.take_shared<Market>();
         let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
         let position = scenario.take_shared<Position>();
         router::close_position_at_price(&mut market,
          &mut vault,
+         &mut treasury,
           position,
           47_500,
           &clock,
          scenario.ctx());
         ts::return_shared(market);
         ts::return_shared(vault);
+        ts::return_shared(treasury);
     };
     scenario.next_tx(TRADER);
     {
         let payout = scenario.take_from_sender<Coin<TEST_USDC>>();
-        assert!(coin::value(&payout) == 500-10, 0);
+        assert!(coin::value(&payout) == 500-30, 0);
         transfer::public_transfer(payout, TRADER);
     };
     sui::clock::destroy_for_testing(clock);
@@ -166,10 +180,12 @@ fun open_short_then_close_in_profit(){
     {
         let mut market = scenario.take_shared<Market>();
         let mut vault = scenario.take_shared<Vault>();
+        let mut treasury= scenario.take_shared<Treasury>();
         let collateral = coin::mint_for_testing<TEST_USDC>(1_000,
         scenario.ctx());
         router::open_position_at_price(&mut market,
          &mut vault,
+         &mut treasury,
           collateral,
            false,
           10, 
@@ -178,6 +194,7 @@ fun open_short_then_close_in_profit(){
           scenario.ctx());
         ts::return_shared(market);
         ts::return_shared(vault);
+        ts::return_shared(treasury);
     };
     sui::clock::increment_for_testing(&mut clock, 3_600_000);
     scenario.next_tx(ADMIN);
@@ -192,20 +209,23 @@ fun open_short_then_close_in_profit(){
     {
         let mut market = scenario.take_shared<Market>();
         let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
         let position = scenario.take_shared<Position>();
         router::close_position_at_price(&mut market,
          &mut vault,
+         &mut treasury,
           position,
           45_000,
           &clock,
          scenario.ctx());
         ts::return_shared(market);
         ts::return_shared(vault);
+        ts::return_shared(treasury);
     };
     scenario.next_tx(TRADER);
     {
         let payout = scenario.take_from_sender<Coin<TEST_USDC>>();
-        assert!(coin::value(&payout) == 2_000-10, 0);
+        assert!(coin::value(&payout) == 2_000-30, 0);
         transfer::public_transfer(payout, TRADER);
     };
     sui::clock::destroy_for_testing(clock);

@@ -33,8 +33,6 @@ public(package) fun deposit(treasury: &mut Treasury, payment:Coin<TEST_USDC>){
     balance::join(&mut treasury.balance, coin::into_balance(payment));
 }
 
-
-
 public fun total_balance(treasury : &Treasury) : u64 {
     balance::value(&treasury.balance)
 }

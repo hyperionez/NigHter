@@ -13,6 +13,7 @@ use std::u64::min;
 use sui::coin::Coin;
 use perp_dex::test_usdc::TEST_USDC;
 use perp_dex::math;
+use perp_dex::treasury::{Treasury, Self};
 
 const EWrongMarket : u64 = 1;
 const EIsNotLiquidatable : u64 = 2;
@@ -20,6 +21,7 @@ const EIsNotLiquidatable : u64 = 2;
 public fun liquidate(
     market:&mut Market,
     vault: &mut Vault,
+    treasury: &mut Treasury,
     position: Position,
     price_info_object: &PriceInfoObject,
     clock:&Clock,
@@ -30,12 +32,13 @@ public fun liquidate(
         price_info_object,
         clock
     );
-    liquidate_at_price(market, vault, position, current_price, clock, ctx);
+    liquidate_at_price(market, vault, treasury, position, current_price, clock, ctx);
 }
 
 public fun liquidate_at_price(
     market: &mut Market,
     vault: &mut Vault,
+    treasury: &mut Treasury,
     position: Position,
     current_price: u64,
     clock: &Clock,
@@ -106,6 +109,8 @@ public fun liquidate_at_price(
             ctx
         );
         let owner_payout = final_equity - penalty;
+        let treasury_earning = vault::pay_out(vault, penalty - keeper_reward, ctx);
+        treasury::deposit(treasury, treasury_earning);
         let owner_coin = vault::pay_out(
             vault,
             owner_payout,

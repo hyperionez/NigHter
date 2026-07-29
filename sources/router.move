@@ -11,6 +11,8 @@ use pyth::price_info::PriceInfoObject;
 use sui::clock::Clock;
 use perp_dex::oracle;
 use perp_dex::funding;
+use perp_dex::treasury::{Treasury, Self};
+use perp_dex::fee;
 
 const EInvalidLeverage : u64 = 0;
 const EWrongMarket : u64 = 1;
@@ -20,6 +22,7 @@ const ELossExceedsCollateral : u64 = 3;
 public fun open_position(
     market: &mut Market,
     vault: &mut Vault,
+    treasury: &mut Treasury,
     collateral : Coin<TEST_USDC>,
     is_long: bool,
     leverage: u64,
@@ -29,12 +32,13 @@ public fun open_position(
 ) {
     
     let entry_price = oracle::get_validated_price(market, price_info_object, clock);
-    open_position_at_price(market, vault, collateral, is_long, leverage, entry_price, clock, ctx);
+    open_position_at_price(market, vault, treasury, collateral, is_long, leverage, entry_price, clock, ctx);
 }
 
 public(package) fun open_position_at_price(
     market: &mut Market,
     vault: &mut Vault,
+    treasury : &mut Treasury,
     collateral: Coin<TEST_USDC>,
     is_long: bool,
     leverage: u64,
@@ -46,6 +50,11 @@ public(package) fun open_position_at_price(
     assert!(leverage > 0 && leverage <= market::max_leverage(market), EInvalidLeverage);
     let collateral_amount = coin::value(&collateral);
     let size = collateral_amount * leverage;
+    let open_fee = fee::calculate_open_fee(size, market::open_fee_bps(market));
+    let mut collateral = collateral;
+    let fee_coin = coin::split(&mut collateral, open_fee, ctx);
+    treasury::deposit(treasury, fee_coin);
+    let net_collateral_amount = coin::value(&collateral);
     if(is_long){
         market::add_long_open_interest(market, size);
     } else {
@@ -63,7 +72,7 @@ public(package) fun open_position_at_price(
         object::id(market),
         is_long,
         size,
-        collateral_amount,
+        net_collateral_amount,
         price,
         entry_funding_index,
         ctx
@@ -75,6 +84,7 @@ public(package) fun open_position_at_price(
 public fun close_position(
     market: &mut Market,
     vault: &mut Vault,
+    treasury: &mut Treasury,
     position : Position,
     price_info_object : &PriceInfoObject,
     clock : &Clock,
@@ -85,6 +95,7 @@ public fun close_position(
      clock);
     close_position_at_price(market,
     vault,
+    treasury,
     position,
     exit_price,
     clock,
@@ -94,6 +105,7 @@ public fun close_position(
 public(package) fun close_position_at_price(
     market: &mut Market,
     vault: &mut Vault,
+    treasury : &mut Treasury,
     position : Position,
     exit_price : u64,
     clock: &Clock,
@@ -126,13 +138,16 @@ public(package) fun close_position_at_price(
         entry_price - exit_price
     };
     let pnl = math::mul_div(size, price_diff, entry_price);
+    let close_fee = fee::calculate_close_fee(size, market::close_fee_bps(market));
     let payout = if (is_profit) {
-        assert!(funding_cost <= collateral + pnl, ELossExceedsCollateral);
-        collateral + pnl - funding_cost
+        assert!(funding_cost + close_fee <= collateral + pnl, ELossExceedsCollateral);
+        collateral + pnl - funding_cost - close_fee
     } else {
-        assert!(pnl + funding_cost<= collateral, ELossExceedsCollateral);
-        collateral - pnl - funding_cost
+        assert!(pnl + funding_cost<= collateral - close_fee, ELossExceedsCollateral);
+        collateral - pnl - funding_cost - close_fee
     };
+    let fee_coin = vault::pay_out(vault, close_fee, ctx);
+    treasury::deposit(treasury, fee_coin);
     let payout_coin = vault::pay_out(vault, payout, ctx);
     transfer::public_transfer(payout_coin, owner);
 }
