@@ -60,10 +60,10 @@ public(package) fun open_position_at_price(
     } else {
         market::add_short_open_interest(market, size);
     };
-    let entry_funding_index = if (is_long) {
-        market::cumulative_funding_long(market)
+    let (entry_funding_charge_index, entry_funding_credit_index) = if (is_long) {
+        (market::cumulative_funding_long_charge(market), market::cumulative_funding_long_credit(market))
     } else {
-        market::cumulative_funding_short(market)
+        (market::cumulative_funding_short_charge(market), market::cumulative_funding_short_credit(market))
     };
     vault::hold_collateral(vault, collateral);
     
@@ -74,7 +74,8 @@ public(package) fun open_position_at_price(
         size,
         net_collateral_amount,
         price,
-        entry_funding_index,
+        entry_funding_charge_index,
+        entry_funding_credit_index,
         ctx
     );
     position::share(position);
@@ -120,11 +121,13 @@ public(package) fun close_position_at_price(
      size,
      collateral, 
      entry_price,
-     entry_funding_index)= position::destroy(position);
-    let funding_cost = funding::funding_owed(market,
-    is_long,
-    entry_funding_index,
-    size);
+     entry_funding_charge_index,
+     entry_funding_credit_index)= position::destroy(position);
+    let (funding_is_charge, funding_amount) = funding::funding_settlement(market,
+     is_long,
+      entry_funding_charge_index,
+       entry_funding_credit_index,
+        size);
 
     if(is_long){
         market::add_long_close_interest(market, size);
@@ -138,13 +141,35 @@ public(package) fun close_position_at_price(
         entry_price - exit_price
     };
     let pnl = math::mul_div(size, price_diff, entry_price);
-    let close_fee = fee::calculate_close_fee(size, market::close_fee_bps(market));
-    let payout = if (is_profit) {
-        assert!(funding_cost + close_fee <= collateral + pnl, ELossExceedsCollateral);
-        collateral + pnl - funding_cost - close_fee
+    let (net_result, net_is_profit) : (u64, bool) = if (is_profit) {
+        if(funding_is_charge) {
+            if (pnl > funding_amount) {
+                (pnl - funding_amount, true)
+            } else {
+                (funding_amount - pnl,  false)
+            }
+        } else {
+            (pnl + funding_amount, true)
+        } 
     } else {
-        assert!(pnl + funding_cost<= collateral - close_fee, ELossExceedsCollateral);
-        collateral - pnl - funding_cost - close_fee
+        if(funding_is_charge) {
+            (pnl + funding_amount, false)
+        } else {
+            if(funding_amount > pnl) {
+                (funding_amount - pnl, true)
+            } else {
+                (pnl - funding_amount, false)
+            }
+        }
+    };
+    let close_fee = fee::calculate_close_fee(size,
+     market::close_fee_bps(market));
+    let payout = if (net_is_profit) {
+        assert!(close_fee <= collateral + net_result, ELossExceedsCollateral);
+        collateral + net_result -  close_fee
+    } else {
+        assert!(net_result + close_fee <= collateral, ELossExceedsCollateral);
+        collateral - net_result - close_fee
     };
     let fee_coin = vault::pay_out(vault, close_fee, ctx);
     treasury::deposit(treasury, fee_coin);

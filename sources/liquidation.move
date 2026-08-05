@@ -49,7 +49,8 @@ public fun liquidate_at_price(
     let entry_price = position::entry_price(&position);
     let size = position::size(&position);
     let is_long = position::is_long(&position);
-    let entry_index = position::entry_funding_index(&position);
+    let entry_charge_index = position::entry_funding_charge_index(&position);
+    let entry_credit_index = position::entry_funding_credit_index(&position);
     
     let (is_profit, pnl) = margin::calculate_pnl(
         entry_price,
@@ -57,20 +58,33 @@ public fun liquidate_at_price(
         size,
         is_long
     );
-    let funding_cost = funding::funding_owed(
+    let (funding_is_charge, funding_amount) = funding::funding_settlement(
         market,
         is_long,
-        entry_index,
+        entry_charge_index,
+        entry_credit_index,
         size
     );
     let (net_result, net_is_profit) : (u64, bool) = if (is_profit) {
-        if(pnl > funding_cost){
-            (pnl - funding_cost, true)
+        if(funding_is_charge) {
+            if (pnl > funding_amount) {
+                (pnl - funding_amount, true)
+            } else {
+                (funding_amount - pnl, false)
+            }
         } else {
-            (funding_cost - pnl, false)
+            (pnl + funding_amount, true)
         }
     } else {
-        (pnl + funding_cost, false)
+        if (funding_is_charge) {
+            (pnl + funding_amount, false)
+        } else {
+            if(funding_amount > pnl) {
+                (funding_amount - pnl, true)
+            } else {
+                (pnl - funding_amount, false)
+            }
+        }
     };
 
     let collateral = position::collateral(&position);
@@ -87,6 +101,7 @@ public fun liquidate_at_price(
         _,
         size,
         collateral,
+        _,
         _,
         _) = position::destroy(position);
     let final_equity = if(net_is_profit) {

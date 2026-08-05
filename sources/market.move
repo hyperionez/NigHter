@@ -25,8 +25,11 @@ public struct Market has key{
     pyth_price_feed_id : vector<u8>,
     max_price_stanless_secs : u64,
     paused:bool,
-    cumulative_funding_long : u128,
-    cumulative_funding_short : u128,
+    cumulative_funding_long_charge : u128,
+    cumulative_funding_long_credit : u128,
+    cumulative_funding_short_charge : u128,
+    cumulative_funding_short_credit : u128,
+
     last_funding_time : u64,
     funding_rate_bps_per_hour : u64,
     liquidation_penalty_bps : u64,
@@ -69,8 +72,10 @@ public fun create_market(
         pyth_price_feed_id : pyth_price_feed_id,
         max_price_stanless_secs : max_price_stanless_secs,
         paused: false,
-        cumulative_funding_long : 0,
-        cumulative_funding_short : 0,
+        cumulative_funding_long_charge : 0,
+        cumulative_funding_long_credit : 0,
+        cumulative_funding_short_charge : 0,
+        cumulative_funding_short_credit : 0,
         last_funding_time : clock::timestamp_ms(clock),
         funding_rate_bps_per_hour,
         liquidation_penalty_bps,
@@ -106,12 +111,20 @@ public(package) fun set_last_funding_time(market: &mut Market, now: u64) {
     market.last_funding_time = now;
 }
 
-public(package) fun add_funding_index_long(market: &mut Market, delta: u128) {
-    market.cumulative_funding_long = market.cumulative_funding_long + delta;
+public(package) fun add_funding_index_long_charge(market: &mut Market, delta: u128) {
+    market.cumulative_funding_long_charge = market.cumulative_funding_long_charge + delta;
 }
 
-public(package) fun add_funding_index_short(market: &mut Market, delta: u128) {
-    market.cumulative_funding_short = market.cumulative_funding_short + delta;
+public(package) fun add_funding_index_short_charge(market: &mut Market, delta: u128) {
+    market.cumulative_funding_short_charge = market.cumulative_funding_short_charge + delta;
+}
+
+public(package) fun add_funding_index_long_credit(market: &mut Market, delta: u128) {
+    market.cumulative_funding_long_credit = market.cumulative_funding_long_credit + delta;
+}
+
+public(package) fun add_funding_index_short_credit(market: &mut Market, delta: u128) {
+    market.cumulative_funding_short_credit = market.cumulative_funding_short_credit + delta;
 }
 
 public fun max_leverage(market: &Market): u64 {
@@ -158,12 +171,20 @@ public fun short_open_interest(market : &Market) : u64 {
     market.short_open_interest
 }
 
-public fun cumulative_funding_long(market : &Market) : u128 {
-    market.cumulative_funding_long
+public fun cumulative_funding_long_credit(market : &Market) : u128 {
+    market.cumulative_funding_long_credit
 }
 
-public fun cumulative_funding_short(market : &Market) : u128{
-    market.cumulative_funding_short
+public fun cumulative_funding_short_credit(market : &Market) : u128{
+    market.cumulative_funding_short_credit
+}
+
+public fun cumulative_funding_long_charge(market : &Market) : u128 {
+    market.cumulative_funding_long_charge
+}
+
+public fun cumulative_funding_short_charge(market : &Market) : u128{
+    market.cumulative_funding_short_charge
 }
 
 public fun last_funding_time(market : &Market) : u64 {

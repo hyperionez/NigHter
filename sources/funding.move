@@ -28,25 +28,52 @@ public(package) fun settle_funding(market : &mut Market, clock : &Clock){
         let skew_bps = math::mul_div(oi_diff, 10_000, total_oi);
         let effective_rate_bps = rate_bps * skew_bps / 10_000;
         let index_delta = ((effective_rate_bps as u128) * (elapsed as u128)) * FUNDING_INDEX_PRECISION / (10_000 * MS_PER_HOUR);
-        if(long_oi > short_oi) {
-            market::add_funding_index_long(market, index_delta);
+        let (majority_oi, minority_oi) = if (long_oi > short_oi) {
+            (long_oi, short_oi)
         } else {
-            market::add_funding_index_short(market, index_delta);
+            (short_oi, long_oi)
+        };
+
+        if(long_oi > short_oi) {
+            market::add_funding_index_long_charge(market, index_delta);
+        } else {
+            market::add_funding_index_short_charge(market, index_delta);
+        };
+
+        if(minority_oi > 0) {
+            let credit_delta = index_delta * (majority_oi as u128) / (minority_oi as u128);
+            if (long_oi > short_oi) {
+                market::add_funding_index_short_credit(market, credit_delta);
+            } else {
+                market::add_funding_index_long_credit(market, credit_delta);
+            };
         };
     };
     market::set_last_funding_time(market, now);
 }
 
-public(package) fun funding_owed(market : &Market,
+public(package) fun funding_settlement(
+    market : &Market,
     is_long : bool,
-    entry_index : u128,
+    entry_charge_index : u128,
+    entry_credit_index : u128,
     size :u64
-) : u64 {
-    let current_index = if(is_long) {
-        market::cumulative_funding_long(market)
+) : (bool, u64) {
+    let (current_charge, current_credit) = if (is_long) {
+        (market::cumulative_funding_long_charge(market), market::cumulative_funding_long_credit(market))
     } else {
-        market::cumulative_funding_short(market)
+        (market::cumulative_funding_short_charge(market), market::cumulative_funding_short_credit(market))
     };
-    let index_delta = current_index - entry_index;
-    math::mul_div_round_up(size, index_delta, FUNDING_INDEX_PRECISION)
+    let charge_delta = current_charge - entry_charge_index;
+    let credit_delta = current_credit - entry_credit_index;
+
+    let charge_amount = math::mul_div_round_up(size, charge_delta, FUNDING_INDEX_PRECISION);
+    let credit_amount = (((size as u128) * credit_delta) / FUNDING_INDEX_PRECISION) as u64;
+
+    if (charge_amount >= credit_amount) {
+        (true, charge_amount - credit_amount)
+    } else {
+        (false, credit_amount - charge_amount)
+    }
+
 }
