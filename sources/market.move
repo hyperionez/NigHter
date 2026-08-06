@@ -96,6 +96,7 @@ public(package) fun add_long_open_interest(market: &mut Market, amount: u64){
     market.long_open_interest = market.long_open_interest + amount;
 }
 public(package) fun add_short_open_interest(market: &mut Market, amount: u64){
+    assert!(market.short_open_interest + amount <= market.max_open_interest, EOpenInterestExceeded);
     market.short_open_interest = market.short_open_interest + amount;
 }
 

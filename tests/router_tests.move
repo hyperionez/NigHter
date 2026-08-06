@@ -231,3 +231,63 @@ fun open_short_then_close_in_profit(){
     sui::clock::destroy_for_testing(clock);
     scenario.end();
 }
+
+#[test, expected_failure(abort_code=3)]
+fun open_long_exceeding_oi_cap_abort(){
+    let mut scenario = ts::begin(ADMIN);
+    let clock = setup(&mut scenario);
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let collateral = coin::mint_for_testing<TEST_USDC>(60_000, scenario.ctx());
+        router::open_position_at_price(
+            &mut market,
+            &mut vault,
+            &mut treasury,
+            collateral,
+            true,
+            20,
+            50_000,
+            &clock,
+            scenario.ctx()
+        );
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    sui::clock::destroy_for_testing(clock);
+    scenario.end();
+}
+
+
+#[test, expected_failure(abort_code=3)]
+fun open_short_exceeding_oi_cap_abort(){
+    let mut scenario = ts::begin(ADMIN);
+    let clock = setup(&mut scenario);
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let collateral = coin::mint_for_testing<TEST_USDC>(60_000, scenario.ctx());
+        router::open_position_at_price(
+            &mut market,
+            &mut vault,
+            &mut treasury,
+            collateral,
+            false,
+            20,
+            50_000,
+            &clock,
+            scenario.ctx()
+        );
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    sui::clock::destroy_for_testing(clock);
+    scenario.end();
+}
+

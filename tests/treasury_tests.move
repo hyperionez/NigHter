@@ -80,8 +80,7 @@ fun withdraw_more_than_balance_aborts(){
         let mut treasury = scenario.take_shared<Treasury>();
         let admin_cap = admin::mint_for_testing(scenario.ctx());
 
-        let payout = treasury::withdraw_treasury(&mut treasury, &admin_cap, 500, scenario.ctx());
-        assert!(treasury::total_balance(&treasury) < 0, 0);
+        let payout = treasury::withdraw_treasury(&mut treasury, &admin_cap, 1500, scenario.ctx());
         transfer::public_transfer(payout, ADMIN);
         transfer::public_transfer(admin_cap, ADMIN);
         ts::return_shared(treasury);
