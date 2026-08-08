@@ -19,7 +19,6 @@ const LP : address = @0xB1;
 const TRADER : address = @0xC1;
 
 fun setup(scenario: &mut ts::Scenario): Clock{
-    vault::init_for_testing(scenario.ctx());
     treasury::init_for_testing(scenario.ctx());
     let clock = clock::create_for_testing(scenario.ctx());
     let admin_cap = admin::mint_for_testing(scenario.ctx());
@@ -39,6 +38,12 @@ fun setup(scenario: &mut ts::Scenario): Clock{
      100,
      50,
      scenario.ctx(),);
+     scenario.next_tx(ADMIN);
+    {
+        let market = scenario.take_shared<Market>();
+        vault::create_vault_for_market(&market, &admin_cap, scenario.ctx());
+        ts::return_shared(market);
+    };
     transfer::public_transfer(admin_cap, ADMIN);
     scenario.next_tx(LP);
     {
@@ -378,6 +383,78 @@ fun close_position_reverts_when_market_paused(){
         );
         ts::return_shared(market);
         ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    sui::clock::destroy_for_testing(clock);
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code=1)]
+fun open_position_reverts_when_vault_market_mismatched(){
+    let mut scenario = ts::begin(ADMIN);
+    treasury::init_for_testing(scenario.ctx());
+    let clock = clock::create_for_testing(scenario.ctx());
+    let admin_cap = admin::mint_for_testing(scenario.ctx());
+    market::create_market(&admin_cap,
+     b"BTC-PERP",
+     20, 1000, 500, 10, 10,
+     1_000_000, 50_000,
+     b"BTC_PERP_FEED_ID",
+     60, 10, &clock, 100, 50,
+     scenario.ctx());
+    vault::init_for_testing(object::id_from_address(@0xDEAD), scenario.ctx());
+    transfer::public_transfer(admin_cap, ADMIN);
+
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let collateral = coin::mint_for_testing<TEST_USDC>(1_000, scenario.ctx());
+        router::open_position_at_price(
+            &mut market, &mut vault, &mut treasury,
+            collateral, true, 10, 50_000, &clock, scenario.ctx()
+        );
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    sui::clock::destroy_for_testing(clock);
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code=1)]
+fun close_position_reverts_when_vault_market_mismatched(){
+    let mut scenario = ts::begin(ADMIN);
+    let clock = setup(&mut scenario);
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let collateral = coin::mint_for_testing<TEST_USDC>(1_000, scenario.ctx());
+        router::open_position_at_price(
+            &mut market, &mut vault, &mut treasury,
+            collateral, true, 10, 50_000, &clock, scenario.ctx()
+        );
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    scenario.next_tx(ADMIN);
+    let wrong_vault_id = vault::init_for_testing(object::id_from_address(@0xDEAD), scenario.ctx());
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let mut wrong_vault = scenario.take_shared_by_id<Vault>(wrong_vault_id);
+        let position = scenario.take_shared<Position>();
+        router::close_position_at_price(
+            &mut market, &mut wrong_vault, &mut treasury,
+            position, 50_000, &clock, scenario.ctx()
+        );
+        ts::return_shared(market);
+        ts::return_shared(wrong_vault);
         ts::return_shared(treasury);
     };
     sui::clock::destroy_for_testing(clock);

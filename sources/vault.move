@@ -5,12 +5,15 @@ use sui::coin::{Self, Coin};
 use sui::event;
 use perp_dex::math;
 use perp_dex::test_usdc::TEST_USDC;
+use perp_dex::market::{Market, Self};
+use perp_dex::admin::AdminCap;
 
 const EZeroAmount: u64 = 0;
 const EWrongVault: u64 = 1;
 
 public struct Vault has key {
     id: UID,
+    market_id: ID,
     balance: Balance<TEST_USDC>,
     lp_supply: u64,
 }
@@ -35,11 +38,12 @@ public struct LiquidityWithdrawn has copy, drop {
     shares_burned: u64,
 }
 
-fun init(ctx: &mut TxContext) {
+public fun create_vault_for_market(market: &Market, _admin:&AdminCap, ctx: &mut TxContext){
     transfer::share_object(Vault {
         id: object::new(ctx),
+        market_id: object::id(market),
         balance: balance::zero(),
-        lp_supply: 0,
+        lp_supply:0
     });
 }
 
@@ -74,6 +78,8 @@ public fun deposit_liquidity(
     }
 }
 
+
+
 public fun withdraw_liquidity(
     vault: &mut Vault,
     receipt: LpReceipt,
@@ -104,14 +110,29 @@ public fun lp_supply(vault: &Vault): u64 {
     vault.lp_supply
 }
 
+public fun market_id(vault: &Vault) : ID {
+    vault.market_id
+}
+
 public fun shares(receipt: &LpReceipt): u64 {
     receipt.shares
 }
 
+
 #[test_only]
-public fun init_for_testing(ctx: &mut TxContext) {
-    init(ctx)
+public fun init_for_testing(market_id : ID, ctx: &mut TxContext) :ID {
+    let vault = Vault {
+        id: object::new(ctx),
+        market_id,
+        balance: balance::zero(),
+        lp_supply: 0
+    };
+    let vault_id = object::id(&vault);
+    transfer::share_object(vault);
+    vault_id
 }
+
+
 
 public(package) fun hold_collateral(vault: &mut Vault, payment: Coin<TEST_USDC>){
     balance::join(&mut vault.balance, coin::into_balance(payment));

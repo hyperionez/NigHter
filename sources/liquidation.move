@@ -45,6 +45,7 @@ public fun liquidate_at_price(
     ctx: &mut TxContext
 ){
     funding::settle_funding(market, clock);
+    assert!(vault::market_id(vault) == object::id(market), EWrongMarket);
     assert!(position::market_id(&position) == object::id(market), EWrongMarket);
     let entry_price = position::entry_price(&position);
     let size = position::size(&position);

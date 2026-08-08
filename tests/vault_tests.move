@@ -13,7 +13,7 @@ const LP_TWO: address = @0xB2;
 #[test]
 fun deposit_then_withdraw_returns_full_amount() {
     let mut scenario = ts::begin(ADMIN);
-    vault::init_for_testing(scenario.ctx());
+    vault::init_for_testing(object::id_from_address(@0xCAFE) ,scenario.ctx());
 
     scenario.next_tx(LP_ONE);
     {
@@ -44,7 +44,7 @@ fun deposit_then_withdraw_returns_full_amount() {
 #[test]
 fun second_lp_gets_proportional_shares() {
     let mut scenario = ts::begin(ADMIN);
-    vault::init_for_testing(scenario.ctx());
+    vault::init_for_testing(object::id_from_address(@0xCAFE), scenario.ctx());
 
     scenario.next_tx(LP_ONE);
     {
@@ -75,7 +75,7 @@ fun second_lp_gets_proportional_shares() {
 #[test, expected_failure(abort_code = 0)]
 fun deposit_zero_amount_aborts() {
     let mut scenario = ts::begin(ADMIN);
-    vault::init_for_testing(scenario.ctx());
+    vault::init_for_testing(object::id_from_address(@0xCAFE), scenario.ctx());
 
     scenario.next_tx(LP_ONE);
     {

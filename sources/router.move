@@ -47,6 +47,7 @@ public(package) fun open_position_at_price(
     clock: &Clock,
     ctx: &mut TxContext
 ) {
+    assert!(vault::market_id(vault) == object::id(market), EWrongMarket);
     assert!(!market::is_paused(market), EMarketPaused);
     funding::settle_funding(market, clock);
     assert!(leverage > 0 && leverage <= market::max_leverage(market), EInvalidLeverage);
@@ -114,6 +115,7 @@ public(package) fun close_position_at_price(
     clock: &Clock,
     ctx: &mut TxContext
 ) {
+    assert!(vault::market_id(vault) == object::id(market), EWrongMarket);
     assert!(!market::is_paused(market), EMarketPaused);
     funding::settle_funding(market, clock);
     assert!(position::market_id(&position) == object::id(market), EWrongMarket);
