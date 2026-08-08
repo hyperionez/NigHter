@@ -303,3 +303,70 @@ fun test_unhealthy_position_with_funding(){
     sui::clock::destroy_for_testing(clock);
     scenario.end();
 }
+#[test]
+fun liquidate_still_works_when_market_paused(){
+    let mut scenario = ts::begin(ADMIN);
+    let clock = setup(&mut scenario);
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let collateral = coin::mint_for_testing<TEST_USDC>(10_000,
+        scenario.ctx());
+        router::open_position_at_price(&mut market,
+         &mut vault,
+         &mut treasury,
+         collateral,
+         true,
+          10,
+          50_000,
+          &clock,
+          scenario.ctx());
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    scenario.next_tx(ADMIN);
+    {
+        let admin_cap = admin::mint_for_testing(scenario.ctx());
+        let mut market = scenario.take_shared<Market>();
+        market::set_mock_price(&mut market, &admin_cap,46_000);
+        market::set_paused(&mut market, &admin_cap, true);
+        ts::return_shared(market);
+        transfer::public_transfer(admin_cap, ADMIN);
+    };
+    scenario.next_tx(KEEPER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let position = scenario.take_shared<Position>();
+        liquidation::liquidate_at_price(
+            &mut market,
+            &mut vault,
+            &mut treasury,
+            position,
+            46_000,
+            &clock,
+            scenario.ctx()
+        );
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    scenario.next_tx(KEEPER);
+    {
+        let payout = scenario.take_from_sender<Coin<TEST_USDC>>();
+        assert!(coin::value(&payout) == 500, 0);
+        transfer::public_transfer(payout, KEEPER);
+    };
+    scenario.next_tx(TRADER);
+    {
+        let payout = scenario.take_from_sender<Coin<TEST_USDC>>();
+        assert!(coin::value(&payout) == 1000-100, 1);
+        transfer::public_transfer(payout, TRADER);
+    };
+    sui::clock::destroy_for_testing(clock);
+    scenario.end();
+}

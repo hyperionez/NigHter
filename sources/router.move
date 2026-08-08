@@ -18,6 +18,7 @@ const EInvalidLeverage : u64 = 0;
 const EWrongMarket : u64 = 1;
 const ENotOwner : u64 = 2;
 const ELossExceedsCollateral : u64 = 3;
+const EMarketPaused : u64 = 4;
 
 public fun open_position(
     market: &mut Market,
@@ -46,6 +47,7 @@ public(package) fun open_position_at_price(
     clock: &Clock,
     ctx: &mut TxContext
 ) {
+    assert!(!market::is_paused(market), EMarketPaused);
     funding::settle_funding(market, clock);
     assert!(leverage > 0 && leverage <= market::max_leverage(market), EInvalidLeverage);
     let collateral_amount = coin::value(&collateral);
@@ -112,6 +114,7 @@ public(package) fun close_position_at_price(
     clock: &Clock,
     ctx: &mut TxContext
 ) {
+    assert!(!market::is_paused(market), EMarketPaused);
     funding::settle_funding(market, clock);
     assert!(position::market_id(&position) == object::id(market), EWrongMarket);
     assert!(position::owner(&position) == ctx.sender(), ENotOwner);

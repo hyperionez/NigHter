@@ -33,6 +33,12 @@ public(package) fun deposit(treasury: &mut Treasury, payment:Coin<TEST_USDC>){
     balance::join(&mut treasury.balance, coin::into_balance(payment));
 }
 
+public(package) fun withdraw_up_to(treasury: &mut Treasury, amount : u64, ctx: &mut TxContext) : Coin<TEST_USDC>{
+    let available = balance::value(&treasury.balance);
+    let take = if (amount < available) {amount} else {available};
+    coin::from_balance(balance::split(&mut treasury.balance, take), ctx)
+}
+
 public fun total_balance(treasury : &Treasury) : u64 {
     balance::value(&treasury.balance)
 }

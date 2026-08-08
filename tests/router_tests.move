@@ -291,3 +291,95 @@ fun open_short_exceeding_oi_cap_abort(){
     scenario.end();
 }
 
+#[test, expected_failure(abort_code=4)]
+fun open_position_reverts_when_market_pasued(){
+    let mut scenario = ts::begin(ADMIN);
+    let clock = setup(&mut scenario);
+    scenario.next_tx(ADMIN);
+    {
+        let admin_cap = admin::mint_for_testing(scenario.ctx());
+        let mut market = scenario.take_shared<Market>();
+        market::set_paused(&mut market, &admin_cap, true);
+        ts::return_shared(market);
+        transfer::public_transfer(admin_cap, ADMIN);
+    };
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let collateral = coin::mint_for_testing<TEST_USDC>(1_000, scenario.ctx());
+        router::open_position_at_price(
+            &mut market,
+            &mut vault,
+            &mut treasury,
+            collateral,
+            true,
+            10,
+            50_000,
+            &clock,
+            scenario.ctx()
+        );
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    sui::clock::destroy_for_testing(clock);
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code=4)]
+fun close_position_reverts_when_market_paused(){
+    let mut scenario = ts::begin(ADMIN);
+    let clock = setup(&mut scenario);
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let collateral = coin::mint_for_testing<TEST_USDC>(1_000, scenario.ctx());
+        router::open_position_at_price(
+            &mut market,
+            &mut vault,
+            &mut treasury,
+            collateral,
+            true,
+            10,
+            50_000,
+            &clock,
+            scenario.ctx()
+        );
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    scenario.next_tx(ADMIN);
+    {
+        let admin_cap = admin::mint_for_testing(scenario.ctx());
+        let mut market = scenario.take_shared<Market>();
+        market::set_paused(&mut market, &admin_cap, true);
+        ts::return_shared(market);
+        transfer::public_transfer(admin_cap, ADMIN);
+    };
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let position = scenario.take_shared<Position>();
+        router::close_position_at_price(
+            &mut market,
+            &mut vault,
+            &mut treasury,
+            position,
+            50_000,
+            &clock,
+            scenario.ctx()
+        );
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    sui::clock::destroy_for_testing(clock);
+    scenario.end();
+}

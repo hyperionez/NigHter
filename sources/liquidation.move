@@ -10,7 +10,7 @@ use perp_dex::margin;
 use pyth::price_info::PriceInfoObject;
 
 use std::u64::min;
-use sui::coin::Coin;
+use sui::coin::{Coin, Self};
 use perp_dex::test_usdc::TEST_USDC;
 use perp_dex::math;
 use perp_dex::treasury::{Treasury, Self};
@@ -140,11 +140,14 @@ public fun liquidate_at_price(
             ctx.sender()
         );
     } else {
-        let keeper_coin :Coin<TEST_USDC> = vault::pay_out(
-            vault,
-            math::mul_div(size,keeper_reward_bps,10_000),
-            ctx
-        );
+        let keeper_reward_amount = math::mul_div(size, keeper_reward_bps, 10_000);
+        let mut keeper_coin = treasury::withdraw_up_to(treasury, keeper_reward_amount, ctx);
+        let covered = coin::value(&keeper_coin);
+        if(covered < keeper_reward_amount) {
+            let shortfall = keeper_reward_amount - covered;
+            let from_vault = vault::pay_out(vault, shortfall, ctx);
+            coin::join(&mut keeper_coin, from_vault);
+        };
         transfer::public_transfer(
             keeper_coin,
             ctx.sender()
