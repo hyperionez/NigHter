@@ -25,7 +25,6 @@ fun setup(scenario: &mut ts::Scenario): Clock{
     let admin_cap = admin::mint_for_testing(scenario.ctx());
     market::create_market(&admin_cap,
      b"BTC-PERP",
-     20,    
      1000,
      500,
      10,

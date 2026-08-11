@@ -50,7 +50,7 @@ public(package) fun open_position_at_price(
     assert!(vault::market_id(vault) == object::id(market), EWrongMarket);
     assert!(!market::is_paused(market), EMarketPaused);
     funding::settle_funding(market, clock);
-    assert!(leverage > 0 && leverage <= market::max_leverage(market), EInvalidLeverage);
+    assert!(leverage > 0 && leverage * market::initial_margin_bps(market) <= 10_000, EInvalidLeverage);
     let collateral_amount = coin::value(&collateral);
     let size = collateral_amount * leverage;
     let open_fee = fee::calculate_open_fee(size, market::open_fee_bps(market));
@@ -145,7 +145,11 @@ public(package) fun close_position_at_price(
     } else {
         entry_price - exit_price
     };
-    let pnl = math::mul_div(size, price_diff, entry_price);
+    let pnl = if (is_profit) {
+        math::mul_div(size, price_diff, entry_price)
+    } else {
+        math::mul_div_round_up(size, price_diff as u128, entry_price as u128)
+    };
     let (net_result, net_is_profit) : (u64, bool) = if (is_profit) {
         if(funding_is_charge) {
             if (pnl > funding_amount) {

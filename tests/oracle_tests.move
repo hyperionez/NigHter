@@ -18,7 +18,6 @@ public fun successfull_get_validated_price(){
     let mut clock = clock::create_for_testing(scenario.ctx());
     market::create_market(&admin_cap,
      b"BTC-PERP",
-     20,    
      1000,
      500,
      10,
@@ -35,7 +34,6 @@ public fun successfull_get_validated_price(){
      scenario.next_tx(ADMIN);
     {
         let mrkt = scenario.take_shared<Market>();
-        assert!(market::max_leverage(&mrkt) == 20, 0);
         assert!(market::initial_margin_bps(&mrkt) == 1000, 1);
         assert!(market::maintenance_margin_bps(&mrkt) == 500, 2);
         assert!(market::mock_price(&mrkt) == 50_000, 3);
@@ -63,7 +61,6 @@ fun mismatch_feed_id(){
     market::create_market(
     &admin_cap,
     b"BTC_PERP",
-    20,
     1000,
     500,
     10,
@@ -81,7 +78,6 @@ fun mismatch_feed_id(){
      scenario.next_tx(ADMIN);
     {
         let mrkt = scenario.take_shared<Market>();
-        assert!(market::max_leverage(&mrkt) == 20, 0);
         assert!(market::initial_margin_bps(&mrkt) == 1000, 1);
         assert!(market::maintenance_margin_bps(&mrkt) == 500, 2);
         assert!(market::mock_price(&mrkt) == 50_000, 3);

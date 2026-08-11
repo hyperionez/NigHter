@@ -13,7 +13,11 @@ is_long:bool) : (bool, u64){
     } else {
         entry_price - current_price
     };
-    let pnl = math::mul_div(size, price_diff, entry_price);
+    let pnl = if (is_profit) {
+        math::mul_div(size, price_diff, entry_price)
+    } else {
+        math::mul_div_round_up(size, price_diff as u128, entry_price as u128)
+    };
     (is_profit, pnl)
 }
 

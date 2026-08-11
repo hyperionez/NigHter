@@ -13,7 +13,6 @@ const EInvalidPenaltyReward : u64 = 4;
 public struct Market has key{
     id : UID,
     symbol: vector<u8>,
-    max_leverage : u64,
     initial_margin_bps : u64,
     maintenance_margin_bps:u64,
     open_fee_bps:u64,
@@ -23,7 +22,7 @@ public struct Market has key{
     max_open_interest:u64,
     mock_price:u64,
     pyth_price_feed_id : vector<u8>,
-    max_price_stanless_secs : u64,
+    max_price_staleness_secs : u64,
     paused:bool,
     cumulative_funding_long_charge : u128,
     cumulative_funding_long_credit : u128,
@@ -39,7 +38,6 @@ public struct Market has key{
 public fun create_market(
     _admin: &AdminCap,
     symbol: vector<u8>,
-    max_leverage: u64,
     initial_margin_bps:u64,
     maintenance_margin_bps:u64,
     open_fee_bps:u64,
@@ -47,20 +45,18 @@ public fun create_market(
     max_open_interest:u64,
     initial_mock_price: u64,
     pyth_price_feed_id : vector<u8>,
-    max_price_stanless_secs : u64,
+    max_price_staleness_secs : u64,
     funding_rate_bps_per_hour : u64,
     clock: &Clock,
     liquidation_penalty_bps : u64,
     keeper_reward_bps : u64,
     ctx: &mut TxContext
 ){
-    assert!(max_leverage > 0, EInvalidLeverage);
     assert!(initial_margin_bps > maintenance_margin_bps, EInvalidMarginConfig);
     assert!(keeper_reward_bps <= liquidation_penalty_bps, EInvalidPenaltyReward);
     transfer::share_object(Market {
         id: object::new(ctx),
         symbol,
-        max_leverage,
         initial_margin_bps,
         maintenance_margin_bps,
         open_fee_bps,
@@ -70,7 +66,7 @@ public fun create_market(
         max_open_interest,
         mock_price : initial_mock_price,
         pyth_price_feed_id : pyth_price_feed_id,
-        max_price_stanless_secs : max_price_stanless_secs,
+        max_price_staleness_secs : max_price_staleness_secs,
         paused: false,
         cumulative_funding_long_charge : 0,
         cumulative_funding_long_credit : 0,
@@ -128,10 +124,6 @@ public(package) fun add_funding_index_short_credit(market: &mut Market, delta: u
     market.cumulative_funding_short_credit = market.cumulative_funding_short_credit + delta;
 }
 
-public fun max_leverage(market: &Market): u64 {
-    market.max_leverage
-}
-
 public fun initial_margin_bps(market: &Market): u64 {
     market.initial_margin_bps
 }
@@ -156,8 +148,8 @@ public fun is_paused(market: &Market): bool {
     market.paused
 }
 
-public fun max_price_stanless_secs(market: &Market) : u64 {
-    market.max_price_stanless_secs
+public fun max_price_staleness_secs(market: &Market) : u64 {
+    market.max_price_staleness_secs
 }
 
 public fun pyth_price_feed_id(market : &Market) : vector<u8> {

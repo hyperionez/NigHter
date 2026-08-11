@@ -60,3 +60,15 @@ fun test_calculate_liquidation_price(){
     );
     assert!(liq_price == 45_500, 0);
 }
+
+#[test]
+fun test_calculate_pnl_loss_rounds_up(){
+    let (is_profit, pnl) = margin::calculate_pnl(
+        50_000,
+        49_999,
+        3,
+        true
+    );
+    assert!(!is_profit, 0);
+    assert!(pnl == 1, 1);
+}

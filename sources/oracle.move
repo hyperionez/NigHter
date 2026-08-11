@@ -21,7 +21,7 @@ public fun get_validated_price(
     price_info_object: &PriceInfoObject,
     clock: &sui::clock::Clock
 ) : u64 {
-    let max_age = market::max_price_stanless_secs(market);
+    let max_age = market::max_price_staleness_secs(market);
     let price_struct = pyth::get_price_no_older_than(price_info_object, clock, max_age);
     let price_info = price_info::get_price_info_from_price_info_object(price_info_object);
     let price_id = price_identifier::get_bytes(&price_info::get_price_identifier(&price_info));
