@@ -9,6 +9,7 @@ use perp_dex::position::{Position, Self};
 use perp_dex::math;
 use pyth::price_info::PriceInfoObject;
 use sui::clock::Clock;
+use sui::event;
 use perp_dex::oracle;
 use perp_dex::funding;
 use perp_dex::treasury::{Treasury, Self};
@@ -19,6 +20,25 @@ const EWrongMarket : u64 = 1;
 const ENotOwner : u64 = 2;
 const ELossExceedsCollateral : u64 = 3;
 const EMarketPaused : u64 = 4;
+
+public struct PositionOpened has copy, drop {
+    position_id : ID,
+    market_id : ID,
+    owner : address,
+    is_long : bool,
+    size : u64,
+    collateral : u64,
+    entry_price : u64
+}
+
+public struct PositionClosed has copy, drop {
+    position_id : ID,
+    market_id : ID,
+    owner : address,
+    net_is_profit : bool,
+    net_result : u64,
+    payout : u64
+}
 
 public fun open_position(
     market: &mut Market,
@@ -51,6 +71,7 @@ public(package) fun open_position_at_price(
     assert!(!market::is_paused(market), EMarketPaused);
     funding::settle_funding(market, clock);
     assert!(leverage > 0 && leverage * market::initial_margin_bps(market) <= 10_000, EInvalidLeverage);
+    
     let collateral_amount = coin::value(&collateral);
     let size = collateral_amount * leverage;
     let open_fee = fee::calculate_open_fee(size, market::open_fee_bps(market));
@@ -81,6 +102,17 @@ public(package) fun open_position_at_price(
         entry_funding_credit_index,
         ctx
     );
+    let position_id = object::id(&position);
+    event::emit(
+        PositionOpened {
+            position_id: position_id,
+            market_id : object::id(market),
+            owner : ctx.sender(),
+            is_long : is_long,
+            size :size,
+            collateral : net_collateral_amount,
+            entry_price : price
+    });
     position::share(position);
 }
 
@@ -120,6 +152,7 @@ public(package) fun close_position_at_price(
     funding::settle_funding(market, clock);
     assert!(position::market_id(&position) == object::id(market), EWrongMarket);
     assert!(position::owner(&position) == ctx.sender(), ENotOwner);
+    let position_id = object::id(&position);
     let (owner,
      _market_id,
      is_long,
@@ -183,5 +216,13 @@ public(package) fun close_position_at_price(
     let fee_coin = vault::pay_out(vault, close_fee, ctx);
     treasury::deposit(treasury, fee_coin);
     let payout_coin = vault::pay_out(vault, payout, ctx);
+    event::emit(PositionClosed {
+        position_id : position_id,
+        market_id : object::id(market),
+        owner : ctx.sender(),
+        net_is_profit : net_is_profit,
+        net_result : net_result,
+        payout : payout
+    });
     transfer::public_transfer(payout_coin, owner);
 }

@@ -8,7 +8,7 @@ use perp_dex::funding;
 use perp_dex::oracle;
 use perp_dex::margin;
 use pyth::price_info::PriceInfoObject;
-
+use sui::event;
 use std::u64::min;
 use sui::coin::{Coin, Self};
 use perp_dex::test_usdc::TEST_USDC;
@@ -17,6 +17,14 @@ use perp_dex::treasury::{Treasury, Self};
 
 const EWrongMarket : u64 = 1;
 const EIsNotLiquidatable : u64 = 2;
+
+public struct PositionLiquidated has copy, drop {
+    position_id : ID,
+    market_id : ID,
+    owner : address,
+    keeper : address,
+    bad_debt : bool
+}
 
 public fun liquidate(
     market:&mut Market,
@@ -97,6 +105,7 @@ public fun liquidate_at_price(
         size,
         maintenance_margin_bps
     ),EIsNotLiquidatable);
+    let position_id = object::id(&position);
     let (owner_address,
         _,
         _,
@@ -140,6 +149,15 @@ public fun liquidate_at_price(
             keeper_coin,
             ctx.sender()
         );
+        event::emit(
+            PositionLiquidated {
+                position_id : position_id,
+                market_id : object::id(market),
+                owner : owner_address,
+                keeper : ctx.sender(),
+                bad_debt : false
+            }
+        )
     } else {
         let keeper_reward_amount = math::mul_div(size, keeper_reward_bps, 10_000);
         let mut keeper_coin = treasury::withdraw_up_to(treasury, keeper_reward_amount, ctx);
@@ -152,6 +170,15 @@ public fun liquidate_at_price(
         transfer::public_transfer(
             keeper_coin,
             ctx.sender()
+        );
+        event::emit(
+            PositionLiquidated {
+                position_id : position_id,
+                market_id : object::id(market),
+                owner: owner_address,
+                keeper : ctx.sender(),
+                bad_debt : true
+            }
         );
     };
 

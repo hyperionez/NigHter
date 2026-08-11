@@ -10,6 +10,7 @@ use pyth::price;
 use sui::math;
 use std::u64;
 
+
 const PRICE_DECIMALS :u8 = 9;
 
 const EInvalidID : u64 = 1;

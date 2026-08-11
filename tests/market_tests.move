@@ -74,3 +74,32 @@ fun create_market_rejects_invalid_margin_config() {
     clock::destroy_for_testing(clock);
     scenario.end();
 }
+
+
+#[test, expected_failure(abort_code = 1)]
+fun create_market_rejects_close_fee_exceeding_maintenance_margin() {
+    let mut scenario = ts::begin(ADMIN);
+    let admin_cap = admin::mint_for_testing(scenario.ctx());
+    let mut clock = clock::create_for_testing(scenario.ctx());
+    market::create_market(
+    &admin_cap,
+    b"BTC_PERP",
+    1000,
+    500,    
+    10,
+    500,    
+    1_000_000,
+    50_000,
+    b"BTC_PERP_FEED_ID",
+    60,
+    10,
+    &clock,
+    100,
+    50,
+    scenario.ctx()
+    );
+
+    transfer::public_transfer(admin_cap, ADMIN);
+    clock::destroy_for_testing(clock);
+    scenario.end();
+}

@@ -8,6 +8,10 @@ use perp_dex::math;
 const FUNDING_INDEX_PRECISION : u128 = 1_000_000_000;
 const MS_PER_HOUR : u128 = 3_600_000;
 
+public fun crank_funding(market: &mut Market, clock : &Clock) {
+    settle_funding(market, clock);
+}
+
 public(package) fun settle_funding(market : &mut Market, clock : &Clock){
     let now = clock::timestamp_ms(clock);
     let elapsed = now - market::last_funding_time(market);

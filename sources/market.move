@@ -4,7 +4,6 @@ use perp_dex::admin::AdminCap;
 use sui::clock::{Clock, Self};
 
 
-const EInvalidLeverage : u64 = 0;
 const EInvalidMarginConfig : u64 = 1;
 const EMarketPaused : u64 = 2;
 const EOpenInterestExceeded : u64 = 3;
@@ -54,6 +53,7 @@ public fun create_market(
 ){
     assert!(initial_margin_bps > maintenance_margin_bps, EInvalidMarginConfig);
     assert!(keeper_reward_bps <= liquidation_penalty_bps, EInvalidPenaltyReward);
+    assert!(close_fee_bps < maintenance_margin_bps, EInvalidMarginConfig);
     transfer::share_object(Market {
         id: object::new(ctx),
         symbol,
