@@ -1,0 +1,21 @@
+{
+  "name": "perp-dex-keeper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reference keeper bot for perp_dex: liquidation + funding crank via event-indexed position discovery.",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mysten/sui": "^1.14.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0"
+  }
+}
