@@ -7,10 +7,14 @@
   "scripts": {
     "start": "tsx src/index.ts",
     "dev": "tsx watch src/index.ts",
+    "register-price-feed": "tsx src/registerPriceFeed.ts",
+    "open-position": "tsx src/openPosition.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@mysten/sui": "^1.14.0",
+    "@pythnetwork/hermes-client": "^2.1.0",
+    "@pythnetwork/pyth-sui-js": "^2.4.0",
     "dotenv": "^16.4.5"
   },
   "devDependencies": {

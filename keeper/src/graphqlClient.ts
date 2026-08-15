@@ -55,6 +55,23 @@ export async function fetchSharedObjectInitialVersion(objectId: string): Promise
   return version;
 }
 
+export async function fetchObjectRef(
+  objectId: string
+): Promise<{ objectId: string; version: string; digest: string }> {
+  const data = await graphqlRequest<{
+    object: { address: string; version: string; digest: string } | null;
+  }>(
+    `query ObjectRef($id: SuiAddress!) {
+      object(address: $id) { address version digest }
+    }`,
+    { id: objectId }
+  );
+  if (!data.object) {
+    throw new Error(`Object ${objectId} not found`);
+  }
+  return { objectId: data.object.address, version: data.object.version, digest: data.object.digest };
+}
+
 export async function fetchReferenceGasPrice(): Promise<bigint> {
   const data = await graphqlRequest<{ epoch: { referenceGasPrice: string } }>(
     `query { epoch { referenceGasPrice } }`
