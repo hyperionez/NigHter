@@ -10,6 +10,8 @@ use perp_dex::admin::AdminCap;
 
 const EZeroAmount: u64 = 0;
 const EWrongVault: u64 = 1;
+const EWrongMarket : u64 = 2;
+const EInsufficientFreeLiquidity : u64 = 3;
 
 public struct Vault has key {
     id: UID,
@@ -82,14 +84,18 @@ public fun deposit_liquidity(
 
 public fun withdraw_liquidity(
     vault: &mut Vault,
+    market: &Market,
     receipt: LpReceipt,
     ctx: &mut TxContext,
 ): Coin<TEST_USDC> {
     let LpReceipt { id, vault_id, shares } = receipt;
     assert!(vault_id == object::id(vault), EWrongVault);
+    assert!(vault.market_id == object::id(market), EWrongMarket);
     object::delete(id);
 
     let payout = math::mul_div(shares, balance::value(&vault.balance), vault.lp_supply);
+    let reserved = market::long_open_interest(market) + market ::short_open_interest(market);
+    assert!(reserved + payout <= balance::value(&vault.balance), EInsufficientFreeLiquidity);
     vault.lp_supply = vault.lp_supply - shares;
 
     event::emit(LiquidityWithdrawn {

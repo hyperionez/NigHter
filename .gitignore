@@ -5,3 +5,5 @@ traces/*
 Pub.*.toml
 .claude
 *.md
+*claude*
+/skills
