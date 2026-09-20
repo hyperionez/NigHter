@@ -28,7 +28,7 @@ async function main() {
 
   console.log(`Opening ${isLong ? "long" : "short"} position, ${leverage}x, using keeper address ${keeperAddress}`);
 
-  const accumulatorMessage = await fetchFreshAccumulatorMessage(BTC_TESTNET_FEED_ID);
+  const accumulatorMessage = await fetchFreshAccumulatorMessage(BTC_TESTNET_FEED_ID, config.pythApiKey);
   console.log(`Fetched fresh Hermes update, ${accumulatorMessage.length} bytes`);
 
   const [gasPrice, gasCoin, marketVersion, vaultVersion, treasuryVersion, collateralRef] = await Promise.all([

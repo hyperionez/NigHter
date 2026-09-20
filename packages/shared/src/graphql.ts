@@ -2,6 +2,14 @@ export function graphqlUrl(network: string): string {
   return `https://graphql.${network}.sui.io/graphql`;
 }
 
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]!);
+  }
+  return btoa(binary);
+}
+
 interface GraphQLResponse<T> {
   data?: T;
   errors?: Array<{ message: string }>;
@@ -132,7 +140,7 @@ export async function executeTransaction(
       }
     }`,
     {
-      bcs: Buffer.from(transactionDataBcs).toString("base64"),
+      bcs: bytesToBase64(transactionDataBcs),
       sigs: signatures,
     }
   );

@@ -4,6 +4,7 @@ import { Transaction } from "@mysten/sui/transactions";
 import { keeperKeypair, keeperAddress } from "./suiClient.js";
 import { config } from "./config.js";
 import {
+  HERMES_URL,
   createPriceFeed,
   fetchBaseUpdateFee,
   fetchGasCoin,
@@ -36,7 +37,7 @@ async function main() {
   const feedIds = resolveFeedIds(process.argv.slice(2));
   console.log(`Registering ${feedIds.length} price feed(s) using keeper address ${keeperAddress}: ${feedIds.join(", ")}`);
 
-  const hermes = new HermesClient("https://hermes-beta.pyth.network");
+  const hermes = new HermesClient(HERMES_URL, { headers: { Authorization: `Bearer ${config.pythApiKey}` } });
   const updates = await hermes.getLatestPriceUpdates(feedIds);
   if (updates.binary.data.length !== 1) {
     throw new Error(

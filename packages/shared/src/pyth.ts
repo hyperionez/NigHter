@@ -3,7 +3,7 @@ import { Transaction } from "@mysten/sui/transactions";
 import { HermesClient } from "@pythnetwork/hermes-client";
 import { fetchObjectFields, fetchSharedObjectInitialVersion, graphqlRequest } from "./graphql.js";
 
-const HERMES_TESTNET_URL = "https://hermes-beta.pyth.network";
+export const HERMES_URL = "https://pyth.dourolabs.app/hermes";
 const PRICE_DECIMALS = 9;
 const MAX_ARGUMENT_SIZE = 16 * 1024;
 const CLOCK_OBJECT_ID = "0x6";
@@ -21,6 +21,30 @@ export const TESTNET_PYTH: PythNetworkInfo = {
   pythStateId: "0x243759059f4c3111179da5878c12f68d612c21a8d54d85edc86164bb18be1c7c",
   wormholeStateId: "0x31358d198147da50db32eda2562951d53973a0c0ad5ed738e9b17d88b213d790",
 };
+
+function hexToBytes(hex: string): Uint8Array {
+  const clean = hex.startsWith("0x") ? hex.slice(2) : hex;
+  const bytes = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(clean.substring(i * 2, i * 2 + 2), 16);
+  }
+  return bytes;
+}
+
+function base64ToBytes(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 async function fetchPackageIdFromStateType(network: string, stateId: string): Promise<string> {
   const data = await graphqlRequest<{ object: { asMoveObject: { contents: { type: { repr: string } } } } | null }>(
@@ -92,7 +116,7 @@ export async function fetchPriceInfoObjectId(
     for (const node of page.nodes) {
       const b64 = node.name.json.bytes;
       if (!b64) continue;
-      const hex = Buffer.from(b64, "base64").toString("hex");
+      const hex = bytesToHex(base64ToBytes(b64));
       if (hex === normalizedFeedId) {
         const priceInfoObjectId = node.value?.json;
         if (!priceInfoObjectId) throw new Error(`Found feed ${feedId} but its value had no id`);
@@ -105,10 +129,10 @@ export async function fetchPriceInfoObjectId(
   throw new Error(`Feed id ${feedId} not found in Pyth price table - register it first (registerPriceFeed.ts)`);
 }
 
-function extractVaaBytesFromAccumulatorMessage(accumulatorMessage: Buffer): Buffer {
-  const trailingPayloadSize = accumulatorMessage.readUint8(6);
+function extractVaaBytesFromAccumulatorMessage(accumulatorMessage: Uint8Array): Uint8Array {
+  const trailingPayloadSize = accumulatorMessage[6]!;
   const vaaSizeOffset = 7 + trailingPayloadSize + 1;
-  const vaaSize = accumulatorMessage.readUint16BE(vaaSizeOffset);
+  const vaaSize = (accumulatorMessage[vaaSizeOffset]! << 8) | accumulatorMessage[vaaSizeOffset + 1]!;
   const vaaOffset = vaaSizeOffset + 2;
   return accumulatorMessage.subarray(vaaOffset, vaaOffset + vaaSize);
 }
@@ -119,7 +143,7 @@ function pureBytes(bytes: Uint8Array) {
 
 async function verifyVaa(
   tx: Transaction,
-  accumulatorMessage: Buffer,
+  accumulatorMessage: Uint8Array,
   wormholePackageId: string,
   wormholeVersion: string,
   network: PythNetworkInfo
@@ -142,7 +166,7 @@ async function verifyVaa(
 
 export async function createPriceFeed(
   tx: Transaction,
-  accumulatorMessage: Buffer,
+  accumulatorMessage: Uint8Array,
   network: PythNetworkInfo = TESTNET_PYTH
 ): Promise<void> {
   const [pythPackageId, wormholePackageId, pythVersion, wormholeVersion] = await Promise.all([
@@ -171,7 +195,7 @@ export async function createPriceFeed(
 
 export async function updatePriceFeeds(
   tx: Transaction,
-  accumulatorMessage: Buffer,
+  accumulatorMessage: Uint8Array,
   feedIds: string[],
   network: PythNetworkInfo = TESTNET_PYTH
 ): Promise<string[]> {
@@ -251,8 +275,12 @@ export function scalePythPrice(price: string, expo: number): bigint {
   return magnitude / 10n ** BigInt(expoMagnitude - PRICE_DECIMALS);
 }
 
-export async function fetchLivePrice(feedId: string): Promise<bigint> {
-  const hermes = new HermesClient(HERMES_TESTNET_URL);
+function hermesClient(apiKey: string): HermesClient {
+  return new HermesClient(HERMES_URL, { headers: { Authorization: `Bearer ${apiKey}` } });
+}
+
+export async function fetchLivePrice(feedId: string, apiKey: string): Promise<bigint> {
+  const hermes = hermesClient(apiKey);
   const updates = await hermes.getLatestPriceUpdates([feedId], { parsed: true });
   const parsed = updates.parsed?.[0];
   if (!parsed) {
@@ -261,8 +289,8 @@ export async function fetchLivePrice(feedId: string): Promise<bigint> {
   return scalePythPrice(parsed.price.price, parsed.price.expo);
 }
 
-export async function fetchFreshAccumulatorMessage(feedId: string): Promise<Buffer> {
-  const hermes = new HermesClient(HERMES_TESTNET_URL);
+export async function fetchFreshAccumulatorMessage(feedId: string, apiKey: string): Promise<Uint8Array> {
+  const hermes = hermesClient(apiKey);
   const updates = await hermes.getLatestPriceUpdates([feedId]);
-  return Buffer.from(updates.binary.data[0]!, "hex");
+  return hexToBytes(updates.binary.data[0]!);
 }

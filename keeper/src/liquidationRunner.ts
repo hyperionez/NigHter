@@ -70,7 +70,7 @@ export async function runLiquidationSweep(store: PositionStore): Promise<void> {
 }
 
 export async function buildLiquidateTransactionWithFreshPrice(positionId: string): Promise<Transaction> {
-  const accumulatorMessage = await fetchFreshAccumulatorMessage(config.pythFeedId);
+  const accumulatorMessage = await fetchFreshAccumulatorMessage(config.pythFeedId, config.pythApiKey);
 
   const [marketVersion, vaultVersion, treasuryVersion, positionVersion, gasPrice, gasCoin] = await Promise.all([
     fetchSharedObjectInitialVersion(config.network, config.marketId),

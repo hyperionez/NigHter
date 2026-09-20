@@ -31,7 +31,7 @@ export async function fetchMarket(marketId: string = config.marketId): Promise<O
 
 export async function fetchCurrentPrice(market: OnChainMarket): Promise<bigint> {
   if (config.priceSource === "pyth") {
-    return fetchLivePrice(config.pythFeedId);
+    return fetchLivePrice(config.pythFeedId, config.pythApiKey);
   }
   return market.mockPrice;
 }

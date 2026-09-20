@@ -1,5 +1,6 @@
 import { useCurrentAccount } from '@mysten/dapp-kit-react'
 import { ConnectButton } from '@mysten/dapp-kit-react/ui'
+import { MarketDashboard } from './components/MarketDashboard.tsx'
 import './App.css'
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
         ) : (
           <p className="connect-hint">Connect a testnet wallet to get started.</p>
         )}
+        <MarketDashboard />
       </main>
     </div>
   )

@@ -22,6 +22,7 @@ export const config = {
   keeperPrivateKey: required("KEEPER_PRIVATE_KEY"),
   priceSource: (process.env.PRICE_SOURCE ?? "mock") as PriceSource,
   pythFeedId: process.env.PYTH_FEED_ID ?? "",
+  pythApiKey: required("PYTH_API_KEY"),
   pollIntervalMs: Number(process.env.POLL_INTERVAL_MS ?? 30_000),
   fundingCrankIntervalMs: Number(process.env.FUNDING_CRANK_INTERVAL_MS ?? 600_000),
 };

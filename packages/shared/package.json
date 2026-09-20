@@ -13,7 +13,6 @@
     "@pythnetwork/hermes-client": "^2.1.0"
   },
   "devDependencies": {
-    "@types/node": "^20.19.43",
     "typescript": "^5.5.0"
   }
 }
