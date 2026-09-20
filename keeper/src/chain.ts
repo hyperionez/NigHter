@@ -1,5 +1,6 @@
 import { config } from "./config.js";
 import { fetchObjectFields } from "./graphqlClient.js";
+import { fetchLivePrice } from "./pythClient.js";
 
 export interface OnChainPosition {
   owner: string;
@@ -48,5 +49,8 @@ export async function fetchMarket(marketId: string = config.marketId): Promise<O
 }
 
 export async function fetchCurrentPrice(market: OnChainMarket): Promise<bigint> {
+  if (config.priceSource === "pyth") {
+    return fetchLivePrice(config.pythFeedId);
+  }
   return market.mockPrice;
 }

@@ -1,8 +1,10 @@
 import { Transaction } from "@mysten/sui/transactions";
+import { HermesClient } from "@pythnetwork/hermes-client";
 import { config } from "./config.js";
 import { keeperKeypair, keeperAddress } from "./suiClient.js";
 import { fetchMarket, fetchPosition, fetchCurrentPrice } from "./chain.js";
 import { checkLiquidatable } from "./health.js";
+import { updatePriceFeeds } from "./pythClient.js";
 import {
   fetchGasCoin,
   fetchReferenceGasPrice,
@@ -10,6 +12,8 @@ import {
   executeTransaction,
 } from "./graphqlClient.js";
 import type { PositionStore } from "./positionStore.js";
+
+const HERMES_TESTNET_URL = "https://hermes-beta.pyth.network";
 
 const CLOCK_OBJECT_ID = "0x6";
 const CLOCK_INITIAL_SHARED_VERSION = "1";
@@ -39,11 +43,74 @@ export async function runLiquidationSweep(store: PositionStore): Promise<void> {
 
     console.log(
       `[liquidation] ${tracked.positionId} IS LIQUIDATABLE - margin ${result.marginRatioBps}bps ` +
-        `< maintenance ${market.maintenanceMarginBps}bps. ` +
-        `PRICE_SOURCE=mock means this is a dry-run finding only - no real PriceInfoObject ` +
-        `exists to actually submit liquidation::liquidate with. See README "Price source".`
+        `< maintenance ${market.maintenanceMarginBps}bps.`
     );
+
+    if (config.priceSource !== "pyth") {
+      console.log(
+        `[liquidation] PRICE_SOURCE=mock - dry-run finding only, not submitting a real tx. ` +
+          `See README "Price source".`
+      );
+      continue;
+    }
+
+    try {
+      const tx = await buildLiquidateTransactionWithFreshPrice(tracked.positionId);
+      const submitResult = await submitTransaction(tx);
+      if (submitResult.status === "SUCCESS") {
+        console.log(`[liquidation] SUCCESS: ${tracked.positionId} liquidated, tx ${submitResult.digest}`);
+        store.remove(tracked.positionId);
+      } else {
+        console.error(
+          `[liquidation] FAILED: ${tracked.positionId} status=${submitResult.status} ${submitResult.error ?? ""}`
+        );
+      }
+    } catch (err) {
+      console.error(`[liquidation] submit failed for ${tracked.positionId}:`, err);
+    }
   }
+}
+
+export async function buildLiquidateTransactionWithFreshPrice(positionId: string): Promise<Transaction> {
+  const hermes = new HermesClient(HERMES_TESTNET_URL);
+  const updates = await hermes.getLatestPriceUpdates([config.pythFeedId]);
+  const accumulatorMessage = Buffer.from(updates.binary.data[0]!, "hex");
+
+  const [marketVersion, vaultVersion, treasuryVersion, positionVersion, gasPrice, gasCoin] = await Promise.all([
+    fetchSharedObjectInitialVersion(config.marketId),
+    fetchSharedObjectInitialVersion(config.vaultId),
+    fetchSharedObjectInitialVersion(config.treasuryId),
+    fetchSharedObjectInitialVersion(positionId),
+    fetchReferenceGasPrice(),
+    fetchGasCoin(keeperAddress),
+  ]);
+
+  const tx = new Transaction();
+  tx.setSender(keeperAddress);
+  tx.setGasPrice(gasPrice);
+  tx.setGasBudget(GAS_BUDGET);
+  tx.setGasPayment([{ objectId: gasCoin.objectId, version: gasCoin.version, digest: gasCoin.digest }]);
+
+  const [priceInfoObjectId] = await updatePriceFeeds(tx, accumulatorMessage, [config.pythFeedId]);
+  const priceVersion = await fetchSharedObjectInitialVersion(priceInfoObjectId!);
+
+  tx.moveCall({
+    target: `${config.packageId}::liquidation::liquidate`,
+    arguments: [
+      tx.sharedObjectRef({ objectId: config.marketId, initialSharedVersion: marketVersion, mutable: true }),
+      tx.sharedObjectRef({ objectId: config.vaultId, initialSharedVersion: vaultVersion, mutable: true }),
+      tx.sharedObjectRef({ objectId: config.treasuryId, initialSharedVersion: treasuryVersion, mutable: true }),
+      tx.sharedObjectRef({ objectId: positionId, initialSharedVersion: positionVersion, mutable: true }),
+      tx.sharedObjectRef({ objectId: priceInfoObjectId!, initialSharedVersion: priceVersion, mutable: false }),
+      tx.sharedObjectRef({
+        objectId: CLOCK_OBJECT_ID,
+        initialSharedVersion: CLOCK_INITIAL_SHARED_VERSION,
+        mutable: false,
+      }),
+    ],
+  });
+
+  return tx;
 }
 
 export async function buildLiquidateTransaction(

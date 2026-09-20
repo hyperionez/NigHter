@@ -1,6 +1,10 @@
 import { bcs } from "@mysten/sui/bcs";
 import { Transaction } from "@mysten/sui/transactions";
+import { HermesClient } from "@pythnetwork/hermes-client";
 import { fetchObjectFields, fetchSharedObjectInitialVersion, graphqlRequest } from "./graphqlClient.js";
+
+const HERMES_TESTNET_URL = "https://hermes-beta.pyth.network";
+const PRICE_DECIMALS = 9;
 
 const MAX_ARGUMENT_SIZE = 16 * 1024;
 const CLOCK_OBJECT_ID = "0x6";
@@ -232,4 +236,23 @@ export async function updatePriceFeeds(
 export async function fetchBaseUpdateFee(network: PythNetworkInfo = TESTNET_PYTH): Promise<bigint> {
   const fields = await fetchObjectFields(network.pythStateId);
   return BigInt(fields.base_update_fee as string);
+}
+
+export function scalePythPrice(price: string, expo: number): bigint {
+  const magnitude = BigInt(price);
+  const expoMagnitude = -expo;
+  if (expoMagnitude <= PRICE_DECIMALS) {
+    return magnitude * 10n ** BigInt(PRICE_DECIMALS - expoMagnitude);
+  }
+  return magnitude / 10n ** BigInt(expoMagnitude - PRICE_DECIMALS);
+}
+
+export async function fetchLivePrice(feedId: string): Promise<bigint> {
+  const hermes = new HermesClient(HERMES_TESTNET_URL);
+  const updates = await hermes.getLatestPriceUpdates([feedId], { parsed: true });
+  const parsed = updates.parsed?.[0];
+  if (!parsed) {
+    throw new Error(`Hermes returned no parsed price update for feed ${feedId}`);
+  }
+  return scalePythPrice(parsed.price.price, parsed.price.expo);
 }
