@@ -29,6 +29,7 @@ fun setup(scenario: &mut ts::Scenario): Clock{
      10,
      10,
      1_000_000,
+     100,
      50_000,
      b"BTC_PERP_FEED_ID",
      60,
@@ -236,6 +237,35 @@ fun open_short_then_close_in_profit(){
     scenario.end();
 }
 
+#[test, expected_failure(abort_code=5)]
+fun open_position_below_min_size_abort(){
+    let mut scenario = ts::begin(ADMIN);
+    let clock = setup(&mut scenario);
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let collateral = coin::mint_for_testing<TEST_USDC>(5, scenario.ctx());
+        router::open_position_at_price(
+            &mut market,
+            &mut vault,
+            &mut treasury,
+            collateral,
+            true,
+            10,
+            50_000,
+            &clock,
+            scenario.ctx()
+        );
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    sui::clock::destroy_for_testing(clock);
+    scenario.end();
+}
+
 #[test, expected_failure(abort_code=3)]
 fun open_long_exceeding_oi_cap_abort(){
     let mut scenario = ts::begin(ADMIN);
@@ -397,7 +427,7 @@ fun open_position_reverts_when_vault_market_mismatched(){
     market::create_market(&admin_cap,
      b"BTC-PERP",
     1000, 500, 10, 10,
-     1_000_000, 50_000,
+     1_000_000, 100, 50_000,
      b"BTC_PERP_FEED_ID",
      60, 10, &clock, 100, 50,
      scenario.ctx());

@@ -20,6 +20,7 @@ const EWrongMarket : u64 = 1;
 const ENotOwner : u64 = 2;
 const ELossExceedsCollateral : u64 = 3;
 const EMarketPaused : u64 = 4;
+const EPositionTooSmall : u64 = 5;
 
 public struct PositionOpened has copy, drop {
     position_id : ID,
@@ -74,6 +75,7 @@ public(package) fun open_position_at_price(
     
     let collateral_amount = coin::value(&collateral);
     let size = collateral_amount * leverage;
+    assert!(size >= market::min_position_size(market), EPositionTooSmall);
     let open_fee = fee::calculate_open_fee(size, market::open_fee_bps(market));
     let mut collateral = collateral;
     let fee_coin = coin::split(&mut collateral, open_fee, ctx);
