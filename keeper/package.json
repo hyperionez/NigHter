@@ -9,6 +9,7 @@
     "dev": "tsx watch src/index.ts",
     "register-price-feed": "tsx src/registerPriceFeed.ts",
     "open-position": "tsx src/openPosition.ts",
+    "verify-staleness": "tsx src/verifyStaleness.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
