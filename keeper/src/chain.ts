@@ -1,29 +1,10 @@
 import { config } from "./config.js";
-import { fetchObjectFields } from "./graphqlClient.js";
-import { fetchLivePrice } from "./pythClient.js";
+import { fetchObjectFields, fetchLivePrice, type OnChainMarket, type OnChainPosition } from "@perp-dex/shared";
 
-export interface OnChainPosition {
-  owner: string;
-  marketId: string;
-  isLong: boolean;
-  size: bigint;
-  collateral: bigint;
-  entryPrice: bigint;
-  entryFundingChargeIndex: bigint;
-  entryFundingCreditIndex: bigint;
-}
-
-export interface OnChainMarket {
-  maintenanceMarginBps: bigint;
-  mockPrice: bigint;
-  cumulativeFundingLongCharge: bigint;
-  cumulativeFundingLongCredit: bigint;
-  cumulativeFundingShortCharge: bigint;
-  cumulativeFundingShortCredit: bigint;
-}
+export type { OnChainMarket, OnChainPosition };
 
 export async function fetchPosition(positionId: string): Promise<OnChainPosition> {
-  const f = await fetchObjectFields(positionId);
+  const f = await fetchObjectFields(config.network, positionId);
   return {
     owner: f.owner as string,
     marketId: f.market_id as string,
@@ -37,7 +18,7 @@ export async function fetchPosition(positionId: string): Promise<OnChainPosition
 }
 
 export async function fetchMarket(marketId: string = config.marketId): Promise<OnChainMarket> {
-  const f = await fetchObjectFields(marketId);
+  const f = await fetchObjectFields(config.network, marketId);
   return {
     maintenanceMarginBps: BigInt(f.maintenance_margin_bps as string),
     mockPrice: BigInt(f.mock_price as string),

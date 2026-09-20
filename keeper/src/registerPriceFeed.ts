@@ -2,8 +2,14 @@ import process from "node:process";
 import { HermesClient } from "@pythnetwork/hermes-client";
 import { Transaction } from "@mysten/sui/transactions";
 import { keeperKeypair, keeperAddress } from "./suiClient.js";
-import { createPriceFeed, fetchBaseUpdateFee } from "./pythClient.js";
-import { fetchGasCoin, fetchReferenceGasPrice, executeTransaction } from "./graphqlClient.js";
+import { config } from "./config.js";
+import {
+  createPriceFeed,
+  fetchBaseUpdateFee,
+  fetchGasCoin,
+  fetchReferenceGasPrice,
+  executeTransaction,
+} from "@perp-dex/shared";
 
 const GAS_BUDGET = 200_000_000n;
 
@@ -42,8 +48,8 @@ async function main() {
   console.log(`Fetched Hermes update, ${accumulatorMessage.length} bytes`);
 
   const [gasPrice, gasCoin, baseUpdateFee] = await Promise.all([
-    fetchReferenceGasPrice(),
-    fetchGasCoin(keeperAddress),
+    fetchReferenceGasPrice(config.network),
+    fetchGasCoin(config.network, keeperAddress),
     fetchBaseUpdateFee(),
   ]);
   console.log(`Base update fee: ${baseUpdateFee}`);
@@ -60,7 +66,7 @@ async function main() {
 
   const bytes = await tx.build();
   const { signature } = await keeperKeypair.signTransaction(bytes);
-  const result = await executeTransaction(bytes, [signature]);
+  const result = await executeTransaction(config.network, bytes, [signature]);
 
   if (result.status !== "SUCCESS") {
     console.error(`FAILED: ${result.status} ${result.error ?? ""}`);

@@ -1,0 +1,9 @@
+{
+  "name": "perp-dex",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "keeper",
+    "frontend"
+  ]
+}

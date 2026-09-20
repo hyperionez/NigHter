@@ -1,19 +1,17 @@
 import { Transaction } from "@mysten/sui/transactions";
-import { HermesClient } from "@pythnetwork/hermes-client";
 import { config } from "./config.js";
 import { keeperKeypair, keeperAddress } from "./suiClient.js";
 import { fetchMarket, fetchPosition, fetchCurrentPrice } from "./chain.js";
-import { checkLiquidatable } from "./health.js";
-import { updatePriceFeeds } from "./pythClient.js";
 import {
+  checkLiquidatable,
+  updatePriceFeeds,
+  fetchFreshAccumulatorMessage,
   fetchGasCoin,
   fetchReferenceGasPrice,
   fetchSharedObjectInitialVersion,
   executeTransaction,
-} from "./graphqlClient.js";
+} from "@perp-dex/shared";
 import type { PositionStore } from "./positionStore.js";
-
-const HERMES_TESTNET_URL = "https://hermes-beta.pyth.network";
 
 const CLOCK_OBJECT_ID = "0x6";
 const CLOCK_INITIAL_SHARED_VERSION = "1";
@@ -72,17 +70,15 @@ export async function runLiquidationSweep(store: PositionStore): Promise<void> {
 }
 
 export async function buildLiquidateTransactionWithFreshPrice(positionId: string): Promise<Transaction> {
-  const hermes = new HermesClient(HERMES_TESTNET_URL);
-  const updates = await hermes.getLatestPriceUpdates([config.pythFeedId]);
-  const accumulatorMessage = Buffer.from(updates.binary.data[0]!, "hex");
+  const accumulatorMessage = await fetchFreshAccumulatorMessage(config.pythFeedId);
 
   const [marketVersion, vaultVersion, treasuryVersion, positionVersion, gasPrice, gasCoin] = await Promise.all([
-    fetchSharedObjectInitialVersion(config.marketId),
-    fetchSharedObjectInitialVersion(config.vaultId),
-    fetchSharedObjectInitialVersion(config.treasuryId),
-    fetchSharedObjectInitialVersion(positionId),
-    fetchReferenceGasPrice(),
-    fetchGasCoin(keeperAddress),
+    fetchSharedObjectInitialVersion(config.network, config.marketId),
+    fetchSharedObjectInitialVersion(config.network, config.vaultId),
+    fetchSharedObjectInitialVersion(config.network, config.treasuryId),
+    fetchSharedObjectInitialVersion(config.network, positionId),
+    fetchReferenceGasPrice(config.network),
+    fetchGasCoin(config.network, keeperAddress),
   ]);
 
   const tx = new Transaction();
@@ -92,7 +88,7 @@ export async function buildLiquidateTransactionWithFreshPrice(positionId: string
   tx.setGasPayment([{ objectId: gasCoin.objectId, version: gasCoin.version, digest: gasCoin.digest }]);
 
   const [priceInfoObjectId] = await updatePriceFeeds(tx, accumulatorMessage, [config.pythFeedId]);
-  const priceVersion = await fetchSharedObjectInitialVersion(priceInfoObjectId!);
+  const priceVersion = await fetchSharedObjectInitialVersion(config.network, priceInfoObjectId!);
 
   tx.moveCall({
     target: `${config.packageId}::liquidation::liquidate`,
@@ -119,13 +115,13 @@ export async function buildLiquidateTransaction(
 ): Promise<Transaction> {
   const [marketVersion, vaultVersion, treasuryVersion, positionVersion, priceVersion, gasPrice, gasCoin] =
     await Promise.all([
-      fetchSharedObjectInitialVersion(config.marketId),
-      fetchSharedObjectInitialVersion(config.vaultId),
-      fetchSharedObjectInitialVersion(config.treasuryId),
-      fetchSharedObjectInitialVersion(positionId),
-      fetchSharedObjectInitialVersion(priceInfoObjectId),
-      fetchReferenceGasPrice(),
-      fetchGasCoin(keeperAddress),
+      fetchSharedObjectInitialVersion(config.network, config.marketId),
+      fetchSharedObjectInitialVersion(config.network, config.vaultId),
+      fetchSharedObjectInitialVersion(config.network, config.treasuryId),
+      fetchSharedObjectInitialVersion(config.network, positionId),
+      fetchSharedObjectInitialVersion(config.network, priceInfoObjectId),
+      fetchReferenceGasPrice(config.network),
+      fetchGasCoin(config.network, keeperAddress),
     ]);
 
   const tx = new Transaction();
@@ -158,5 +154,5 @@ export async function buildLiquidateTransaction(
 export async function submitTransaction(tx: Transaction) {
   const bytes = await tx.build();
   const { signature } = await keeperKeypair.signTransaction(bytes);
-  return executeTransaction(bytes, [signature]);
+  return executeTransaction(config.network, bytes, [signature]);
 }

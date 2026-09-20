@@ -1,13 +1,13 @@
 import { Transaction } from "@mysten/sui/transactions";
 import { keeperKeypair, keeperAddress } from "./suiClient.js";
 import { config } from "./config.js";
-import { fetchPriceInfoObjectId } from "./pythClient.js";
 import {
+  fetchPriceInfoObjectId,
   fetchGasCoin,
   fetchReferenceGasPrice,
   fetchSharedObjectInitialVersion,
   executeTransaction,
-} from "./graphqlClient.js";
+} from "@perp-dex/shared";
 
 const BTC_TESTNET_FEED_ID = "f9c0172ba10dfa4d19088d94f5bf61d3b54d5bd7483a322a982e1373ee8ea31b";
 const CLOCK_OBJECT_ID = "0x6";
@@ -28,13 +28,13 @@ async function main() {
 
   const [gasPrice, gasCoin, marketVersion, vaultVersion, treasuryVersion, positionVersion, priceVersion] =
     await Promise.all([
-      fetchReferenceGasPrice(),
-      fetchGasCoin(keeperAddress),
-      fetchSharedObjectInitialVersion(config.marketId),
-      fetchSharedObjectInitialVersion(config.vaultId),
-      fetchSharedObjectInitialVersion(config.treasuryId),
-      fetchSharedObjectInitialVersion(positionId),
-      fetchSharedObjectInitialVersion(priceInfoObjectId),
+      fetchReferenceGasPrice(config.network),
+      fetchGasCoin(config.network, keeperAddress),
+      fetchSharedObjectInitialVersion(config.network, config.marketId),
+      fetchSharedObjectInitialVersion(config.network, config.vaultId),
+      fetchSharedObjectInitialVersion(config.network, config.treasuryId),
+      fetchSharedObjectInitialVersion(config.network, positionId),
+      fetchSharedObjectInitialVersion(config.network, priceInfoObjectId),
     ]);
 
   const tx = new Transaction();
@@ -61,7 +61,7 @@ async function main() {
 
   const bytes = await tx.build();
   const { signature } = await keeperKeypair.signTransaction(bytes);
-  const result = await executeTransaction(bytes, [signature]);
+  const result = await executeTransaction(config.network, bytes, [signature]);
 
   if (result.status === "SUCCESS") {
     console.error(

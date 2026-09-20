@@ -1,6 +1,6 @@
-import { config } from "./config.js";
-
-const GRAPHQL_URL = `https://graphql.${config.network}.sui.io/graphql`;
+export function graphqlUrl(network: string): string {
+  return `https://graphql.${network}.sui.io/graphql`;
+}
 
 interface GraphQLResponse<T> {
   data?: T;
@@ -8,10 +8,11 @@ interface GraphQLResponse<T> {
 }
 
 export async function graphqlRequest<T>(
+  network: string,
   query: string,
   variables?: Record<string, unknown>
 ): Promise<T> {
-  const response = await fetch(GRAPHQL_URL, {
+  const response = await fetch(graphqlUrl(network), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables }),
@@ -23,10 +24,11 @@ export async function graphqlRequest<T>(
   return result.data as T;
 }
 
-export async function fetchObjectFields(objectId: string): Promise<Record<string, unknown>> {
+export async function fetchObjectFields(network: string, objectId: string): Promise<Record<string, unknown>> {
   const data = await graphqlRequest<{
     object: { asMoveObject: { contents: { json: Record<string, unknown> } } | null } | null;
   }>(
+    network,
     `query ObjectFields($id: SuiAddress!) {
       object(address: $id) { asMoveObject { contents { json } } }
     }`,
@@ -39,10 +41,11 @@ export async function fetchObjectFields(objectId: string): Promise<Record<string
   return json;
 }
 
-export async function fetchSharedObjectInitialVersion(objectId: string): Promise<string> {
+export async function fetchSharedObjectInitialVersion(network: string, objectId: string): Promise<string> {
   const data = await graphqlRequest<{
     object: { owner: { initialSharedVersion?: string } | null } | null;
   }>(
+    network,
     `query SharedVersion($id: SuiAddress!) {
       object(address: $id) { owner { __typename ... on Shared { initialSharedVersion } } }
     }`,
@@ -56,11 +59,13 @@ export async function fetchSharedObjectInitialVersion(objectId: string): Promise
 }
 
 export async function fetchObjectRef(
+  network: string,
   objectId: string
 ): Promise<{ objectId: string; version: string; digest: string }> {
   const data = await graphqlRequest<{
     object: { address: string; version: string; digest: string } | null;
   }>(
+    network,
     `query ObjectRef($id: SuiAddress!) {
       object(address: $id) { address version digest }
     }`,
@@ -72,14 +77,16 @@ export async function fetchObjectRef(
   return { objectId: data.object.address, version: data.object.version, digest: data.object.digest };
 }
 
-export async function fetchReferenceGasPrice(): Promise<bigint> {
+export async function fetchReferenceGasPrice(network: string): Promise<bigint> {
   const data = await graphqlRequest<{ epoch: { referenceGasPrice: string } }>(
+    network,
     `query { epoch { referenceGasPrice } }`
   );
   return BigInt(data.epoch.referenceGasPrice);
 }
 
 export async function fetchGasCoin(
+  network: string,
   ownerAddress: string
 ): Promise<{ objectId: string; version: string; digest: string }> {
   const data = await graphqlRequest<{
@@ -87,6 +94,7 @@ export async function fetchGasCoin(
       objects: { nodes: Array<{ address: string; version: string; digest: string }> };
     } | null;
   }>(
+    network,
     `query GasCoin($owner: SuiAddress!) {
       address(address: $owner) {
         objects(first: 1, filter: { type: "0x2::coin::Coin<0x2::sui::SUI>" }) {
@@ -104,6 +112,7 @@ export async function fetchGasCoin(
 }
 
 export async function executeTransaction(
+  network: string,
   transactionDataBcs: Uint8Array,
   signatures: string[]
 ): Promise<{ digest: string; status: string; error?: string }> {
@@ -116,6 +125,7 @@ export async function executeTransaction(
       };
     };
   }>(
+    network,
     `mutation Execute($bcs: Base64!, $sigs: [Base64!]!) {
       executeTransaction(transactionDataBcs: $bcs, signatures: $sigs) {
         effects { digest status executionError { abortCode message } }

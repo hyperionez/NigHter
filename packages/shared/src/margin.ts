@@ -1,4 +1,22 @@
-import type { OnChainMarket, OnChainPosition } from "./chain.js";
+export interface OnChainPosition {
+  owner: string;
+  marketId: string;
+  isLong: boolean;
+  size: bigint;
+  collateral: bigint;
+  entryPrice: bigint;
+  entryFundingChargeIndex: bigint;
+  entryFundingCreditIndex: bigint;
+}
+
+export interface OnChainMarket {
+  maintenanceMarginBps: bigint;
+  mockPrice: bigint;
+  cumulativeFundingLongCharge: bigint;
+  cumulativeFundingLongCredit: bigint;
+  cumulativeFundingShortCharge: bigint;
+  cumulativeFundingShortCredit: bigint;
+}
 
 const FUNDING_INDEX_PRECISION = 1_000_000_000n;
 

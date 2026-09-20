@@ -1,16 +1,16 @@
 import process from "node:process";
-import { HermesClient } from "@pythnetwork/hermes-client";
 import { Transaction } from "@mysten/sui/transactions";
 import { keeperKeypair, keeperAddress } from "./suiClient.js";
 import { config } from "./config.js";
-import { updatePriceFeeds } from "./pythClient.js";
 import {
+  updatePriceFeeds,
+  fetchFreshAccumulatorMessage,
   fetchGasCoin,
   fetchObjectRef,
   fetchReferenceGasPrice,
   fetchSharedObjectInitialVersion,
   executeTransaction,
-} from "./graphqlClient.js";
+} from "@perp-dex/shared";
 
 const BTC_TESTNET_FEED_ID = "f9c0172ba10dfa4d19088d94f5bf61d3b54d5bd7483a322a982e1373ee8ea31b";
 const GAS_BUDGET = 300_000_000n;
@@ -28,18 +28,16 @@ async function main() {
 
   console.log(`Opening ${isLong ? "long" : "short"} position, ${leverage}x, using keeper address ${keeperAddress}`);
 
-  const hermes = new HermesClient("https://hermes-beta.pyth.network");
-  const updates = await hermes.getLatestPriceUpdates([BTC_TESTNET_FEED_ID]);
-  const accumulatorMessage = Buffer.from(updates.binary.data[0]!, "hex");
+  const accumulatorMessage = await fetchFreshAccumulatorMessage(BTC_TESTNET_FEED_ID);
   console.log(`Fetched fresh Hermes update, ${accumulatorMessage.length} bytes`);
 
   const [gasPrice, gasCoin, marketVersion, vaultVersion, treasuryVersion, collateralRef] = await Promise.all([
-    fetchReferenceGasPrice(),
-    fetchGasCoin(keeperAddress),
-    fetchSharedObjectInitialVersion(config.marketId),
-    fetchSharedObjectInitialVersion(config.vaultId),
-    fetchSharedObjectInitialVersion(config.treasuryId),
-    fetchObjectRef(collateralCoinId),
+    fetchReferenceGasPrice(config.network),
+    fetchGasCoin(config.network, keeperAddress),
+    fetchSharedObjectInitialVersion(config.network, config.marketId),
+    fetchSharedObjectInitialVersion(config.network, config.vaultId),
+    fetchSharedObjectInitialVersion(config.network, config.treasuryId),
+    fetchObjectRef(config.network, collateralCoinId),
   ]);
 
   const tx = new Transaction();
@@ -50,7 +48,7 @@ async function main() {
 
   const [priceInfoObjectId] = await updatePriceFeeds(tx, accumulatorMessage, [BTC_TESTNET_FEED_ID]);
   console.log(`PriceInfoObject refreshed: ${priceInfoObjectId}`);
-  const priceInfoVersion = await fetchSharedObjectInitialVersion(priceInfoObjectId!);
+  const priceInfoVersion = await fetchSharedObjectInitialVersion(config.network, priceInfoObjectId!);
 
   tx.moveCall({
     target: `${config.packageId}::router::open_position`,
@@ -68,7 +66,7 @@ async function main() {
 
   const bytes = await tx.build();
   const { signature } = await keeperKeypair.signTransaction(bytes);
-  const result = await executeTransaction(bytes, [signature]);
+  const result = await executeTransaction(config.network, bytes, [signature]);
 
   if (result.status !== "SUCCESS") {
     console.error(`FAILED: ${result.status} ${result.error ?? ""}`);

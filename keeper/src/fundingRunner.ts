@@ -6,7 +6,7 @@ import {
   fetchReferenceGasPrice,
   fetchSharedObjectInitialVersion,
   executeTransaction,
-} from "./graphqlClient.js";
+} from "@perp-dex/shared";
 
 const CLOCK_OBJECT_ID = "0x6";
 const CLOCK_INITIAL_SHARED_VERSION = "1";
@@ -15,9 +15,9 @@ const GAS_BUDGET = 50_000_000n;
 export async function runFundingCrank(): Promise<void> {
   try {
     const [marketInitialSharedVersion, gasPrice, gasCoin] = await Promise.all([
-      fetchSharedObjectInitialVersion(config.marketId),
-      fetchReferenceGasPrice(),
-      fetchGasCoin(keeperAddress),
+      fetchSharedObjectInitialVersion(config.network, config.marketId),
+      fetchReferenceGasPrice(config.network),
+      fetchGasCoin(config.network, keeperAddress),
     ]);
 
     const tx = new Transaction();
@@ -46,7 +46,7 @@ export async function runFundingCrank(): Promise<void> {
 
     const bytes = await tx.build();
     const { signature } = await keeperKeypair.signTransaction(bytes);
-    const result = await executeTransaction(bytes, [signature]);
+    const result = await executeTransaction(config.network, bytes, [signature]);
 
     if (result.status !== "SUCCESS") {
       console.error(`[funding] crank_funding executed but failed: ${result.status} ${result.error ?? ""}`);

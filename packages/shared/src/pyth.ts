@@ -1,28 +1,30 @@
 import { bcs } from "@mysten/sui/bcs";
 import { Transaction } from "@mysten/sui/transactions";
 import { HermesClient } from "@pythnetwork/hermes-client";
-import { fetchObjectFields, fetchSharedObjectInitialVersion, graphqlRequest } from "./graphqlClient.js";
+import { fetchObjectFields, fetchSharedObjectInitialVersion, graphqlRequest } from "./graphql.js";
 
 const HERMES_TESTNET_URL = "https://hermes-beta.pyth.network";
 const PRICE_DECIMALS = 9;
-
 const MAX_ARGUMENT_SIZE = 16 * 1024;
 const CLOCK_OBJECT_ID = "0x6";
 const CLOCK_INITIAL_SHARED_VERSION = "1";
 const PRICE_TABLE_PAGE_SIZE = 50;
 
 export interface PythNetworkInfo {
+  network: string;
   pythStateId: string;
   wormholeStateId: string;
 }
 
 export const TESTNET_PYTH: PythNetworkInfo = {
+  network: "testnet",
   pythStateId: "0x243759059f4c3111179da5878c12f68d612c21a8d54d85edc86164bb18be1c7c",
   wormholeStateId: "0x31358d198147da50db32eda2562951d53973a0c0ad5ed738e9b17d88b213d790",
 };
 
-async function fetchPackageIdFromStateType(stateId: string): Promise<string> {
+async function fetchPackageIdFromStateType(network: string, stateId: string): Promise<string> {
   const data = await graphqlRequest<{ object: { asMoveObject: { contents: { type: { repr: string } } } } | null }>(
+    network,
     `query StateType($id: SuiAddress!) {
       object(address: $id) { asMoveObject { contents { type { repr } } } }
     }`,
@@ -35,10 +37,11 @@ async function fetchPackageIdFromStateType(stateId: string): Promise<string> {
   return repr.split("::")[0]!;
 }
 
-async function fetchPriceTableId(pythStateId: string): Promise<string> {
+async function fetchPriceTableId(network: string, pythStateId: string): Promise<string> {
   const data = await graphqlRequest<{
     object: { dynamicFields: { nodes: Array<{ name: { json: unknown }; value: { address?: string } | null }> } } | null;
   }>(
+    network,
     `query PriceTable($id: SuiAddress!) {
       object(address: $id) {
         dynamicFields(first: ${PRICE_TABLE_PAGE_SIZE}) {
@@ -62,7 +65,7 @@ export async function fetchPriceInfoObjectId(
   network: PythNetworkInfo = TESTNET_PYTH
 ): Promise<string> {
   const normalizedFeedId = feedId.replace(/^0x/, "").toLowerCase();
-  const tableId = await fetchPriceTableId(network.pythStateId);
+  const tableId = await fetchPriceTableId(network.network, network.pythStateId);
 
   let after: string | null = null;
   for (;;) {
@@ -74,6 +77,7 @@ export async function fetchPriceInfoObjectId(
         };
       } | null;
     } = await graphqlRequest(
+      network.network,
       `query PriceEntries($id: SuiAddress!, $after: String) {
         object(address: $id) {
           dynamicFields(first: ${PRICE_TABLE_PAGE_SIZE}, after: $after) {
@@ -117,13 +121,14 @@ async function verifyVaa(
   tx: Transaction,
   accumulatorMessage: Buffer,
   wormholePackageId: string,
-  wormholeVersion: string
+  wormholeVersion: string,
+  network: PythNetworkInfo
 ) {
   const vaa = extractVaaBytesFromAccumulatorMessage(accumulatorMessage);
   const [verifiedVaa] = tx.moveCall({
     target: `${wormholePackageId}::vaa::parse_and_verify`,
     arguments: [
-      tx.sharedObjectRef({ objectId: TESTNET_PYTH.wormholeStateId, initialSharedVersion: wormholeVersion, mutable: false }),
+      tx.sharedObjectRef({ objectId: network.wormholeStateId, initialSharedVersion: wormholeVersion, mutable: false }),
       tx.pure(pureBytes(vaa)),
       tx.sharedObjectRef({
         objectId: CLOCK_OBJECT_ID,
@@ -141,13 +146,13 @@ export async function createPriceFeed(
   network: PythNetworkInfo = TESTNET_PYTH
 ): Promise<void> {
   const [pythPackageId, wormholePackageId, pythVersion, wormholeVersion] = await Promise.all([
-    fetchPackageIdFromStateType(network.pythStateId),
-    fetchPackageIdFromStateType(network.wormholeStateId),
-    fetchSharedObjectInitialVersion(network.pythStateId),
-    fetchSharedObjectInitialVersion(network.wormholeStateId),
+    fetchPackageIdFromStateType(network.network, network.pythStateId),
+    fetchPackageIdFromStateType(network.network, network.wormholeStateId),
+    fetchSharedObjectInitialVersion(network.network, network.pythStateId),
+    fetchSharedObjectInitialVersion(network.network, network.wormholeStateId),
   ]);
 
-  const verifiedVaa = await verifyVaa(tx, accumulatorMessage, wormholePackageId, wormholeVersion);
+  const verifiedVaa = await verifyVaa(tx, accumulatorMessage, wormholePackageId, wormholeVersion, network);
 
   tx.moveCall({
     target: `${pythPackageId}::pyth::create_price_feeds_using_accumulator`,
@@ -164,7 +169,6 @@ export async function createPriceFeed(
   });
 }
 
-
 export async function updatePriceFeeds(
   tx: Transaction,
   accumulatorMessage: Buffer,
@@ -173,15 +177,15 @@ export async function updatePriceFeeds(
 ): Promise<string[]> {
   const [pythPackageId, wormholePackageId, pythVersion, wormholeVersion, baseUpdateFee, priceInfoObjectIds] =
     await Promise.all([
-      fetchPackageIdFromStateType(network.pythStateId),
-      fetchPackageIdFromStateType(network.wormholeStateId),
-      fetchSharedObjectInitialVersion(network.pythStateId),
-      fetchSharedObjectInitialVersion(network.wormholeStateId),
+      fetchPackageIdFromStateType(network.network, network.pythStateId),
+      fetchPackageIdFromStateType(network.network, network.wormholeStateId),
+      fetchSharedObjectInitialVersion(network.network, network.pythStateId),
+      fetchSharedObjectInitialVersion(network.network, network.wormholeStateId),
       fetchBaseUpdateFee(network),
       Promise.all(feedIds.map((feedId) => fetchPriceInfoObjectId(feedId, network))),
     ]);
 
-  const verifiedVaa = await verifyVaa(tx, accumulatorMessage, wormholePackageId, wormholeVersion);
+  const verifiedVaa = await verifyVaa(tx, accumulatorMessage, wormholePackageId, wormholeVersion, network);
 
   let [hotPotato] = tx.moveCall({
     target: `${pythPackageId}::pyth::create_authenticated_price_infos_using_accumulator`,
@@ -203,7 +207,7 @@ export async function updatePriceFeeds(
   );
 
   for (let i = 0; i < feedIds.length; i++) {
-    const priceInfoVersion = await fetchSharedObjectInitialVersion(priceInfoObjectIds[i]!);
+    const priceInfoVersion = await fetchSharedObjectInitialVersion(network.network, priceInfoObjectIds[i]!);
     [hotPotato] = tx.moveCall({
       target: `${pythPackageId}::pyth::update_single_price_feed`,
       arguments: [
@@ -234,7 +238,7 @@ export async function updatePriceFeeds(
 }
 
 export async function fetchBaseUpdateFee(network: PythNetworkInfo = TESTNET_PYTH): Promise<bigint> {
-  const fields = await fetchObjectFields(network.pythStateId);
+  const fields = await fetchObjectFields(network.network, network.pythStateId);
   return BigInt(fields.base_update_fee as string);
 }
 
@@ -255,4 +259,10 @@ export async function fetchLivePrice(feedId: string): Promise<bigint> {
     throw new Error(`Hermes returned no parsed price update for feed ${feedId}`);
   }
   return scalePythPrice(parsed.price.price, parsed.price.expo);
+}
+
+export async function fetchFreshAccumulatorMessage(feedId: string): Promise<Buffer> {
+  const hermes = new HermesClient(HERMES_TESTNET_URL);
+  const updates = await hermes.getLatestPriceUpdates([feedId]);
+  return Buffer.from(updates.binary.data[0]!, "hex");
 }
