@@ -10,6 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@mysten/dapp-kit-core": "^1.6.30",
+    "@mysten/dapp-kit-react": "^2.1.32",
+    "@mysten/sui": "^2.31.3",
+    "@perp-dex/shared": "*",
+    "@tanstack/react-query": "^5.62.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
