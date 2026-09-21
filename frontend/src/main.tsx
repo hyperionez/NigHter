@@ -1,19 +1,13 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { DAppKitProvider } from '@mysten/dapp-kit-react'
-import { dAppKit } from './dappKit.ts'
+import { Providers } from '@/app/providers.tsx'
+import App from '@/app/App.tsx'
 import './index.css'
-import App from './App.tsx'
-
-const queryClient = new QueryClient()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <DAppKitProvider dAppKit={dAppKit}>
-        <App />
-      </DAppKitProvider>
-    </QueryClientProvider>
+    <Providers>
+      <App />
+    </Providers>
   </StrictMode>,
 )

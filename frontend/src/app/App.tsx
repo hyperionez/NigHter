@@ -1,6 +1,6 @@
 import { useCurrentAccount } from '@mysten/dapp-kit-react'
 import { ConnectButton } from '@mysten/dapp-kit-react/ui'
-import { MarketDashboard } from './components/MarketDashboard.tsx'
+import { MarketDashboard } from '@/features/market/components/MarketDashboard.tsx'
 import './App.css'
 
 function App() {
@@ -13,12 +13,8 @@ function App() {
         <ConnectButton />
       </header>
       <main className="app-main">
-        {account ? (
-          <p className="connected-address">Connected: {account.address}</p>
-        ) : (
-          <p className="connect-hint">Connect a testnet wallet to get started.</p>
-        )}
         <MarketDashboard />
+        {!account && <p className="connect-hint">Connect a testnet wallet to trade.</p>}
       </main>
     </div>
   )
