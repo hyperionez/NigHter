@@ -19,6 +19,10 @@ const LP : address = @0xB1;
 const TRADER : address = @0xC1;
 
 fun setup(scenario: &mut ts::Scenario): Clock{
+    setup_with_mode(scenario, false)
+}
+
+fun setup_with_mode(scenario: &mut ts::Scenario, demo_mode: bool): Clock{
     treasury::init_for_testing(scenario.ctx());
     let clock = clock::create_for_testing(scenario.ctx());
     let admin_cap = admin::mint_for_testing(scenario.ctx());
@@ -30,6 +34,7 @@ fun setup(scenario: &mut ts::Scenario): Clock{
      10,
      1_000_000,
      100,
+     demo_mode,
      50_000,
      b"BTC_PERP_FEED_ID",
      60,
@@ -427,7 +432,7 @@ fun open_position_reverts_when_vault_market_mismatched(){
     market::create_market(&admin_cap,
      b"BTC-PERP",
     1000, 500, 10, 10,
-     1_000_000, 100, 50_000,
+     1_000_000, 100, false, 50_000,
      b"BTC_PERP_FEED_ID",
      60, 10, &clock, 100, 50,
      scenario.ctx());
@@ -507,6 +512,107 @@ fun open_position_crossing_initial_margin(){
         ts::return_shared(market);
         ts::return_shared(treasury);
         ts::return_shared(vault);    
+    };
+    sui::clock::destroy_for_testing(clock);
+    scenario.end();
+}
+#[test]
+fun open_with_mock_price_on_demo_market(){
+    let mut scenario = ts::begin(ADMIN);
+    let clock = setup_with_mode(&mut scenario, true);
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let collateral = coin::mint_for_testing<TEST_USDC>(1_000, scenario.ctx());
+        router::open_position_with_mock_price(
+            &mut market, &mut vault, &mut treasury, collateral,
+            true, 10, &clock, scenario.ctx()
+        );
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    scenario.next_tx(TRADER);
+    {
+        let position = scenario.take_shared<Position>();
+        assert!(position::entry_price(&position) == 50_000, 0);
+        assert!(position::size(&position) == 10_000, 1);
+        assert!(position::is_long(&position), 2);
+        ts::return_shared(position);
+    };
+    sui::clock::destroy_for_testing(clock);
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code=6)]
+fun open_with_mock_price_rejects_non_demo_market(){
+    let mut scenario = ts::begin(ADMIN);
+    let clock = setup(&mut scenario);
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let collateral = coin::mint_for_testing<TEST_USDC>(1_000, scenario.ctx());
+        router::open_position_with_mock_price(
+            &mut market, &mut vault, &mut treasury, collateral,
+            true, 10, &clock, scenario.ctx()
+        );
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    sui::clock::destroy_for_testing(clock);
+    scenario.end();
+}
+
+#[test]
+fun close_with_mock_price_on_demo_market(){
+    let mut scenario = ts::begin(ADMIN);
+    let mut clock = setup_with_mode(&mut scenario, true);
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let collateral = coin::mint_for_testing<TEST_USDC>(1_000, scenario.ctx());
+        router::open_position_with_mock_price(
+            &mut market, &mut vault, &mut treasury, collateral,
+            true, 10, &clock, scenario.ctx()
+        );
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    sui::clock::increment_for_testing(&mut clock, 3_600_000);
+    scenario.next_tx(ADMIN);
+    {
+        let admin_cap = admin::mint_for_testing(scenario.ctx());
+        let mut market = scenario.take_shared<Market>();
+        market::set_mock_price(&mut market, &admin_cap, 55_000);
+        ts::return_shared(market);
+        transfer::public_transfer(admin_cap, ADMIN);
+    };
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let position = scenario.take_shared<Position>();
+        router::close_position_with_mock_price(
+            &mut market, &mut vault, &mut treasury, position, &clock, scenario.ctx()
+        );
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    scenario.next_tx(TRADER);
+    {
+        let payout = scenario.take_from_sender<Coin<TEST_USDC>>();
+        assert!(coin::value(&payout) == 2_000-30, 0);
+        transfer::public_transfer(payout, TRADER);
     };
     sui::clock::destroy_for_testing(clock);
     scenario.end();

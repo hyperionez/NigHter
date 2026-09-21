@@ -21,6 +21,8 @@ const ENotOwner : u64 = 2;
 const ELossExceedsCollateral : u64 = 3;
 const EMarketPaused : u64 = 4;
 const EPositionTooSmall : u64 = 5;
+const ENotDemoMarket : u64 = 6;
+const EDemoMarketRejectsOracle : u64 = 7;
 
 public struct PositionOpened has copy, drop {
     position_id : ID,
@@ -52,8 +54,23 @@ public fun open_position(
     clock : &Clock,
     ctx: &mut TxContext
 ) {
-    
+    assert!(!market::demo_mode(market), EDemoMarketRejectsOracle);
     let entry_price = oracle::get_validated_price(market, price_info_object, clock);
+    open_position_at_price(market, vault, treasury, collateral, is_long, leverage, entry_price, clock, ctx);
+}
+
+public fun open_position_with_mock_price(
+    market: &mut Market,
+    vault: &mut Vault,
+    treasury: &mut Treasury,
+    collateral : Coin<TEST_USDC>,
+    is_long: bool,
+    leverage: u64,
+    clock : &Clock,
+    ctx: &mut TxContext
+) {
+    assert!(market::demo_mode(market), ENotDemoMarket);
+    let entry_price = market::mock_price(market);
     open_position_at_price(market, vault, treasury, collateral, is_long, leverage, entry_price, clock, ctx);
 }
 
@@ -128,6 +145,7 @@ public fun close_position(
     clock : &Clock,
     ctx : &mut TxContext
 ) {
+    assert!(!market::demo_mode(market), EDemoMarketRejectsOracle);
     let exit_price = oracle::get_validated_price(market,
      price_info_object,
      clock);
@@ -138,6 +156,19 @@ public fun close_position(
     exit_price,
     clock,
     ctx);
+}
+
+public fun close_position_with_mock_price(
+    market: &mut Market,
+    vault: &mut Vault,
+    treasury: &mut Treasury,
+    position : Position,
+    clock : &Clock,
+    ctx : &mut TxContext
+) {
+    assert!(market::demo_mode(market), ENotDemoMarket);
+    let exit_price = market::mock_price(market);
+    close_position_at_price(market, vault, treasury, position, exit_price, clock, ctx);
 }
 
 public(package) fun close_position_at_price(

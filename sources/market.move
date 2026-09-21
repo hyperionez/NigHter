@@ -20,6 +20,7 @@ public struct Market has key{
     short_open_interest:u64,
     max_open_interest:u64,
     min_position_size:u64,
+    demo_mode:bool,
     mock_price:u64,
     pyth_price_feed_id : vector<u8>,
     max_price_staleness_secs : u64,
@@ -44,6 +45,7 @@ public fun create_market(
     close_fee_bps:u64,
     max_open_interest:u64,
     min_position_size:u64,
+    demo_mode: bool,
     initial_mock_price: u64,
     pyth_price_feed_id : vector<u8>,
     max_price_staleness_secs : u64,
@@ -67,6 +69,7 @@ public fun create_market(
         short_open_interest: 0,
         max_open_interest,
         min_position_size,
+        demo_mode,
         mock_price : initial_mock_price,
         pyth_price_feed_id : pyth_price_feed_id,
         max_price_staleness_secs : max_price_staleness_secs,
@@ -169,6 +172,10 @@ public fun short_open_interest(market : &Market) : u64 {
 
 public fun min_position_size(market : &Market) : u64 {
     market.min_position_size
+}
+
+public fun demo_mode(market : &Market) : bool {
+    market.demo_mode
 }
 
 public fun cumulative_funding_long_credit(market : &Market) : u128 {

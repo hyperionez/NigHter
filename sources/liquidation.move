@@ -17,6 +17,8 @@ use perp_dex::treasury::{Treasury, Self};
 
 const EWrongMarket : u64 = 1;
 const EIsNotLiquidatable : u64 = 2;
+const ENotDemoMarket : u64 = 3;
+const EDemoMarketRejectsOracle : u64 = 4;
 
 public struct PositionLiquidated has copy, drop {
     position_id : ID,
@@ -35,11 +37,25 @@ public fun liquidate(
     clock:&Clock,
     ctx: &mut TxContext
 ) {
+    assert!(!market::demo_mode(market), EDemoMarketRejectsOracle);
     let current_price = oracle::get_validated_price(
         market,
         price_info_object,
         clock
     );
+    liquidate_at_price(market, vault, treasury, position, current_price, clock, ctx);
+}
+
+public fun liquidate_with_mock_price(
+    market: &mut Market,
+    vault: &mut Vault,
+    treasury: &mut Treasury,
+    position: Position,
+    clock: &Clock,
+    ctx: &mut TxContext
+) {
+    assert!(market::demo_mode(market), ENotDemoMarket);
+    let current_price = market::mock_price(market);
     liquidate_at_price(market, vault, treasury, position, current_price, clock, ctx);
 }
 
