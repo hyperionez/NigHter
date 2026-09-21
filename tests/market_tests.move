@@ -3,7 +3,7 @@ module perp_dex::market_tests;
 
 use sui::test_scenario::{Self as ts};
 use perp_dex::admin;
-use perp_dex::market::{Self, Market};
+use perp_dex::market::{Self, Market, DemoPriceCap};
 use sui::clock::{Self, Clock};
 
 const ADMIN: address = @0xA;
@@ -104,6 +104,75 @@ fun create_market_rejects_close_fee_exceeding_maintenance_margin() {
     50,
     scenario.ctx()
     );
+
+    transfer::public_transfer(admin_cap, ADMIN);
+    clock::destroy_for_testing(clock);
+    scenario.end();
+}
+#[test]
+fun demo_price_cap_can_move_mock_price() {
+    let mut scenario = ts::begin(ADMIN);
+    let admin_cap = admin::mint_for_testing(scenario.ctx());
+    let clock = clock::create_for_testing(scenario.ctx());
+    market::create_market(
+        &admin_cap,
+        b"BTC_PERP",
+        1000, 500, 10, 10,
+        1_000_000,
+        100,
+        true,
+        50_000,
+        b"BTC_PERP_FEED_ID",
+        60, 10, &clock, 100, 50,
+        scenario.ctx()
+    );
+
+    scenario.next_tx(ADMIN);
+    {
+        let market = scenario.take_shared<Market>();
+        market::mint_demo_price_cap(&market, &admin_cap, ADMIN, scenario.ctx());
+        ts::return_shared(market);
+    };
+
+    scenario.next_tx(ADMIN);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let cap = scenario.take_from_sender<DemoPriceCap>();
+        market::set_demo_price(&mut market, &cap, 61_000);
+        assert!(market::mock_price(&market) == 61_000, 0);
+        transfer::public_transfer(cap, ADMIN);
+        ts::return_shared(market);
+    };
+
+    transfer::public_transfer(admin_cap, ADMIN);
+    clock::destroy_for_testing(clock);
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code=5)]
+fun mint_demo_price_cap_rejects_non_demo_market() {
+    let mut scenario = ts::begin(ADMIN);
+    let admin_cap = admin::mint_for_testing(scenario.ctx());
+    let clock = clock::create_for_testing(scenario.ctx());
+    market::create_market(
+        &admin_cap,
+        b"BTC_PERP",
+        1000, 500, 10, 10,
+        1_000_000,
+        100,
+        false,
+        50_000,
+        b"BTC_PERP_FEED_ID",
+        60, 10, &clock, 100, 50,
+        scenario.ctx()
+    );
+
+    scenario.next_tx(ADMIN);
+    {
+        let market = scenario.take_shared<Market>();
+        market::mint_demo_price_cap(&market, &admin_cap, ADMIN, scenario.ctx());
+        ts::return_shared(market);
+    };
 
     transfer::public_transfer(admin_cap, ADMIN);
     clock::destroy_for_testing(clock);

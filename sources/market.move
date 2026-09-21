@@ -8,6 +8,13 @@ const EInvalidMarginConfig : u64 = 1;
 const EMarketPaused : u64 = 2;
 const EOpenInterestExceeded : u64 = 3;
 const EInvalidPenaltyReward : u64 = 4;
+const ENotDemoMarket : u64 = 5;
+const EWrongMarketForCap : u64 = 6;
+
+public struct DemoPriceCap has key, store {
+    id: UID,
+    market_id: ID,
+}
 
 public struct Market has key{
     id : UID,
@@ -90,6 +97,24 @@ public fun set_paused(market: &mut Market, _admin : &AdminCap, paused: bool){
 }
 
 public fun set_mock_price(market: &mut Market, _admin :&AdminCap, new_price: u64){
+    market.mock_price = new_price;
+}
+
+public fun mint_demo_price_cap(
+    market: &Market,
+    _admin: &AdminCap,
+    recipient: address,
+    ctx: &mut TxContext
+){
+    assert!(market.demo_mode, ENotDemoMarket);
+    transfer::public_transfer(
+        DemoPriceCap { id: object::new(ctx), market_id: object::id(market) },
+        recipient
+    );
+}
+
+public fun set_demo_price(market: &mut Market, cap: &DemoPriceCap, new_price: u64){
+    assert!(cap.market_id == object::id(market), EWrongMarketForCap);
     market.mock_price = new_price;
 }
 
