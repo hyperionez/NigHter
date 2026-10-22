@@ -123,20 +123,33 @@ export async function executeTransaction(
   network: string,
   transactionDataBcs: Uint8Array,
   signatures: string[]
-): Promise<{ digest: string; status: string; error?: string }> {
+): Promise<{
+  digest: string;
+  status: string;
+  error?: string;
+  gasObject?: { objectId: string; version: string; digest: string };
+}> {
   const data = await graphqlRequest<{
     executeTransaction: {
       effects: {
         digest: string;
         status: string;
         executionError: { abortCode: string | null; message: string } | null;
+        gasEffects: {
+          gasObject: { address: string; version: string; digest: string } | null;
+        } | null;
       };
     };
   }>(
     network,
     `mutation Execute($bcs: Base64!, $sigs: [Base64!]!) {
       executeTransaction(transactionDataBcs: $bcs, signatures: $sigs) {
-        effects { digest status executionError { abortCode message } }
+        effects {
+          digest
+          status
+          executionError { abortCode message }
+          gasEffects { gasObject { address version digest } }
+        }
       }
     }`,
     {
@@ -145,11 +158,15 @@ export async function executeTransaction(
     }
   );
   const effects = data.executeTransaction.effects;
+  const gas = effects.gasEffects?.gasObject;
   return {
     digest: effects.digest,
     status: effects.status,
     error: effects.executionError
       ? `${effects.executionError.message} (abort code: ${effects.executionError.abortCode})`
+      : undefined,
+    gasObject: gas
+      ? { objectId: gas.address, version: gas.version, digest: gas.digest }
       : undefined,
   };
 }
