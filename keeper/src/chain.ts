@@ -17,7 +17,12 @@ export async function fetchPosition(positionId: string): Promise<OnChainPosition
   };
 }
 
-export async function fetchMarket(marketId: string = config.marketId): Promise<OnChainMarket> {
+export interface MarketRuntime extends OnChainMarket {
+  demoMode: boolean;
+  paused: boolean;
+}
+
+export async function fetchMarket(marketId: string = config.marketId): Promise<MarketRuntime> {
   const f = await fetchObjectFields(config.network, marketId);
   return {
     maintenanceMarginBps: BigInt(f.maintenance_margin_bps as string),
@@ -26,11 +31,13 @@ export async function fetchMarket(marketId: string = config.marketId): Promise<O
     cumulativeFundingLongCredit: BigInt(f.cumulative_funding_long_credit as string),
     cumulativeFundingShortCharge: BigInt(f.cumulative_funding_short_charge as string),
     cumulativeFundingShortCredit: BigInt(f.cumulative_funding_short_credit as string),
+    demoMode: f.demo_mode as boolean,
+    paused: f.paused as boolean,
   };
 }
 
-export async function fetchCurrentPrice(market: OnChainMarket): Promise<bigint> {
-  if (config.priceSource === "pyth") {
+export async function fetchCurrentPrice(market: MarketRuntime): Promise<bigint> {
+  if (!market.demoMode && config.priceSource === "pyth") {
     return fetchLivePrice(config.pythFeedId, config.pythApiKey);
   }
   return market.mockPrice;

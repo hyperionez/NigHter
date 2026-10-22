@@ -19,13 +19,13 @@ async function main() {
       cursor = await syncEvents(store, cursor);
       console.log(`[indexer] tracking ${store.size} open position(s)`);
 
-      await runLiquidationSweep(store);
-
       const now = Date.now();
       if (now - lastFundingCrankAt >= config.fundingCrankIntervalMs) {
         await runFundingCrank();
         lastFundingCrankAt = now;
       }
+
+      await runLiquidationSweep(store);
     } catch (err) {
       console.error("[keeper] tick failed, will retry next interval:", err);
     }

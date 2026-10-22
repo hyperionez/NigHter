@@ -2,11 +2,11 @@ import { Transaction } from "@mysten/sui/transactions";
 import { config } from "./config.js";
 import { keeperKeypair, keeperAddress } from "./suiClient.js";
 import {
-  fetchGasCoin,
   fetchReferenceGasPrice,
   fetchSharedObjectInitialVersion,
   executeTransaction,
 } from "@perp-dex/shared";
+import { nextGasCoin, rememberGasCoin, forgetGasCoin } from "./gasCoin.js";
 
 const CLOCK_OBJECT_ID = "0x6";
 const CLOCK_INITIAL_SHARED_VERSION = "1";
@@ -17,7 +17,7 @@ export async function runFundingCrank(): Promise<void> {
     const [marketInitialSharedVersion, gasPrice, gasCoin] = await Promise.all([
       fetchSharedObjectInitialVersion(config.network, config.marketId),
       fetchReferenceGasPrice(config.network),
-      fetchGasCoin(config.network, keeperAddress),
+      nextGasCoin(),
     ]);
 
     const tx = new Transaction();
@@ -47,6 +47,7 @@ export async function runFundingCrank(): Promise<void> {
     const bytes = await tx.build();
     const { signature } = await keeperKeypair.signTransaction(bytes);
     const result = await executeTransaction(config.network, bytes, [signature]);
+    rememberGasCoin(result.gasObject);
 
     if (result.status !== "SUCCESS") {
       console.error(`[funding] crank_funding executed but failed: ${result.status} ${result.error ?? ""}`);
@@ -54,6 +55,7 @@ export async function runFundingCrank(): Promise<void> {
     }
     console.log(`[funding] crank_funding submitted: ${result.digest}`);
   } catch (err) {
+    forgetGasCoin();
     console.error("[funding] crank_funding failed:", err);
   }
 }

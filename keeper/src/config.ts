@@ -22,10 +22,17 @@ export const config = {
   keeperPrivateKey: required("KEEPER_PRIVATE_KEY"),
   priceSource: (process.env.PRICE_SOURCE ?? "mock") as PriceSource,
   pythFeedId: process.env.PYTH_FEED_ID ?? "",
-  pythApiKey: required("PYTH_API_KEY"),
+  pythApiKey: process.env.PYTH_API_KEY ?? "",
   pollIntervalMs: Number(process.env.POLL_INTERVAL_MS ?? 30_000),
   fundingCrankIntervalMs: Number(process.env.FUNDING_CRANK_INTERVAL_MS ?? 600_000),
 };
+
+if (config.priceSource === "pyth" && !config.pythApiKey) {
+  throw new Error(
+    "PRICE_SOURCE=pyth requires PYTH_API_KEY to be set in keeper/.env - Hermes has rejected " +
+      "unauthenticated requests since 2026-08-26. A demo market needs no key at all. See README."
+  );
+}
 
 if (config.priceSource === "pyth" && !config.pythFeedId) {
   throw new Error(
