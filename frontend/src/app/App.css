@@ -31,3 +31,38 @@
 .connect-hint {
   color: var(--text);
 }
+
+.trading-area {
+  margin-top: 28px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.tab {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--text-h);
+}
+
+.tab-active {
+  background: var(--border);
+  color: var(--text-h);
+}

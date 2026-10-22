@@ -1,0 +1,95 @@
+.liquidity {
+  max-width: 760px;
+}
+
+.pool-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.pool-stats .stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.pool-stats .stat span {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.pool-stats .stat strong {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 18px;
+  color: var(--text-h);
+}
+
+.pool-stats .stat strong small {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.pool-stats .warn {
+  color: #f59e0b;
+}
+
+.reserve-note {
+  margin: 14px 0 20px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.lp-forms {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.lp-card {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.lp-card h3 {
+  margin: 0 0 14px;
+  font-size: 14px;
+}
+
+.lp-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.lp-actions .submit {
+  flex: 1;
+}
+
+.secondary {
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-h);
+  font: inherit;
+  cursor: pointer;
+}
+
+.secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.merge {
+  width: 100%;
+  margin-top: 10px;
+  font-size: 12px;
+}

@@ -11,7 +11,6 @@ export const config = {
   marketId: required('VITE_MARKET_ID'),
   vaultId: required('VITE_VAULT_ID'),
   treasuryId: required('VITE_TREASURY_ID'),
-  demoPriceCapId: required('VITE_DEMO_PRICE_CAP_ID'),
 }
 
 export const CLOCK_OBJECT_ID = '0x6'

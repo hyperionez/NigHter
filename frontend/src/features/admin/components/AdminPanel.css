@@ -1,0 +1,72 @@
+.admin {
+  max-width: 900px;
+}
+
+.role-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.badge-admin {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.enforcement-note {
+  margin: 14px 0 20px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.admin-card {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.admin-card h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.card-meta {
+  margin: 0 0 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.card-meta code {
+  font-family: var(--mono);
+  color: var(--text-h);
+}
+
+.card-meta strong {
+  color: var(--text-h);
+}
+
+.via {
+  opacity: 0.7;
+}
+
+.submit.danger {
+  background: #dc2626;
+}

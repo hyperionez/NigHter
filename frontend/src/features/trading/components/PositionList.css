@@ -1,0 +1,102 @@
+.positions {
+  margin-top: 28px;
+}
+
+.positions h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+.muted {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.position-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.position-table th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+  padding: 0 12px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.position-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.position-table .num {
+  text-align: right;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.side-long {
+  color: #22c55e;
+}
+
+.side-short {
+  color: #ef4444;
+}
+
+.pnl-up {
+  color: #22c55e;
+}
+
+.pnl-down {
+  color: #ef4444;
+}
+
+.margin-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.health-track {
+  width: 64px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.health-bar {
+  height: 100%;
+  background: #22c55e;
+}
+
+.health-danger {
+  background: #ef4444;
+}
+
+.close-btn {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-h);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.close-btn:hover:not(:disabled) {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.close-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
