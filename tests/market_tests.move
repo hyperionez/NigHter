@@ -178,3 +178,35 @@ fun mint_demo_price_cap_rejects_non_demo_market() {
     clock::destroy_for_testing(clock);
     scenario.end();
 }
+
+#[test, expected_failure(abort_code=5)]
+fun set_mock_price_rejects_non_demo_market() {
+    let mut scenario = ts::begin(ADMIN);
+    let admin_cap = admin::mint_for_testing(scenario.ctx());
+    let clock = clock::create_for_testing(scenario.ctx());
+    market::create_market(
+        &admin_cap,
+        b"BTC_PERP",
+        1000, 500, 10, 10,
+        1_000_000,
+        100,
+        false,
+        50_000,
+        b"BTC_PERP_FEED_ID",
+        60, 10, &clock, 100, 50,
+        scenario.ctx()
+    );
+
+    scenario.next_tx(ADMIN);
+    {
+        let risk_cap = admin::mint_risk_cap_for_testing(scenario.ctx());
+        let mut market = scenario.take_shared<Market>();
+        market::set_mock_price(&mut market, &risk_cap, 61_000);
+        ts::return_shared(market);
+        transfer::public_transfer(risk_cap, ADMIN);
+    };
+
+    transfer::public_transfer(admin_cap, ADMIN);
+    clock::destroy_for_testing(clock);
+    scenario.end();
+}

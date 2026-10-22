@@ -47,14 +47,14 @@ fun withdraw_reduces_balance_and_returns_coin(){
     scenario.next_tx(ADMIN);
     {
         let mut treasury = scenario.take_shared<Treasury>();
-        let admin_cap = admin::mint_for_testing(scenario.ctx());
+        let treasurer_cap = admin::mint_treasurer_cap_for_testing(scenario.ctx());
 
-        let payout = treasury::withdraw_treasury(&mut treasury, &admin_cap, 400, scenario.ctx());
+        let payout = treasury::withdraw_treasury(&mut treasury, &treasurer_cap, 400, scenario.ctx());
         assert!(coin::value(&payout) == 400 , 2);
         assert!(treasury::total_balance(&treasury) == 600, 3);
 
         transfer::public_transfer(payout, ADMIN);
-        transfer::public_transfer(admin_cap, ADMIN);
+        transfer::public_transfer(treasurer_cap, ADMIN);
         ts::return_shared(treasury);
     };
 
@@ -78,11 +78,11 @@ fun withdraw_more_than_balance_aborts(){
     scenario.next_tx(ADMIN);
     {
         let mut treasury = scenario.take_shared<Treasury>();
-        let admin_cap = admin::mint_for_testing(scenario.ctx());
+        let treasurer_cap = admin::mint_treasurer_cap_for_testing(scenario.ctx());
 
-        let payout = treasury::withdraw_treasury(&mut treasury, &admin_cap, 1500, scenario.ctx());
+        let payout = treasury::withdraw_treasury(&mut treasury, &treasurer_cap, 1500, scenario.ctx());
         transfer::public_transfer(payout, ADMIN);
-        transfer::public_transfer(admin_cap, ADMIN);
+        transfer::public_transfer(treasurer_cap, ADMIN);
         ts::return_shared(treasury);
     };
     scenario.end();

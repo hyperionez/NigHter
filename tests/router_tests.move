@@ -87,14 +87,6 @@ fun open_long_then_close_in_profit(){
         ts::return_shared(treasury);
     };
     sui::clock::increment_for_testing(&mut clock, 3_600_000);
-    scenario.next_tx(ADMIN);
-    {
-        let admin_cap = admin::mint_for_testing(scenario.ctx());
-        let mut market = scenario.take_shared<Market>();
-        market::set_mock_price(&mut market, &admin_cap,55_000);
-        ts::return_shared(market);
-        transfer::public_transfer(admin_cap, ADMIN);
-    };
     scenario.next_tx(TRADER);
     {
         let mut market = scenario.take_shared<Market>();
@@ -148,14 +140,6 @@ fun open_long_then_close_in_loss(){
         ts::return_shared(treasury);
     };
     sui::clock::increment_for_testing(&mut clock, 3_600_000);
-    scenario.next_tx(ADMIN);
-    {
-        let admin_cap = admin::mint_for_testing(scenario.ctx());
-        let mut market = scenario.take_shared<Market>();
-        market::set_mock_price(&mut market, &admin_cap,47_500);
-        ts::return_shared(market);
-        transfer::public_transfer(admin_cap, ADMIN);
-    };
     scenario.next_tx(TRADER);
     {
         let mut market = scenario.take_shared<Market>();
@@ -207,14 +191,6 @@ fun open_short_then_close_in_profit(){
         ts::return_shared(treasury);
     };
     sui::clock::increment_for_testing(&mut clock, 3_600_000);
-    scenario.next_tx(ADMIN);
-    {
-        let admin_cap = admin::mint_for_testing(scenario.ctx());
-        let mut market = scenario.take_shared<Market>();
-        market::set_mock_price(&mut market, &admin_cap,45_000);
-        ts::return_shared(market);
-        transfer::public_transfer(admin_cap, ADMIN);
-    };
     scenario.next_tx(TRADER);
     {
         let mut market = scenario.take_shared<Market>();
@@ -336,11 +312,11 @@ fun open_position_reverts_when_market_pasued(){
     let clock = setup(&mut scenario);
     scenario.next_tx(ADMIN);
     {
-        let admin_cap = admin::mint_for_testing(scenario.ctx());
+        let risk_cap = admin::mint_risk_cap_for_testing(scenario.ctx());
         let mut market = scenario.take_shared<Market>();
-        market::set_paused(&mut market, &admin_cap, true);
+        market::set_paused(&mut market, &risk_cap, true);
         ts::return_shared(market);
-        transfer::public_transfer(admin_cap, ADMIN);
+        transfer::public_transfer(risk_cap, ADMIN);
     };
     scenario.next_tx(TRADER);
     {
@@ -394,11 +370,11 @@ fun close_position_reverts_when_market_paused(){
     };
     scenario.next_tx(ADMIN);
     {
-        let admin_cap = admin::mint_for_testing(scenario.ctx());
+        let risk_cap = admin::mint_risk_cap_for_testing(scenario.ctx());
         let mut market = scenario.take_shared<Market>();
-        market::set_paused(&mut market, &admin_cap, true);
+        market::set_paused(&mut market, &risk_cap, true);
         ts::return_shared(market);
-        transfer::public_transfer(admin_cap, ADMIN);
+        transfer::public_transfer(risk_cap, ADMIN);
     };
     scenario.next_tx(TRADER);
     {
@@ -589,11 +565,11 @@ fun close_with_mock_price_on_demo_market(){
     sui::clock::increment_for_testing(&mut clock, 3_600_000);
     scenario.next_tx(ADMIN);
     {
-        let admin_cap = admin::mint_for_testing(scenario.ctx());
+        let risk_cap = admin::mint_risk_cap_for_testing(scenario.ctx());
         let mut market = scenario.take_shared<Market>();
-        market::set_mock_price(&mut market, &admin_cap, 55_000);
+        market::set_mock_price(&mut market, &risk_cap, 55_000);
         ts::return_shared(market);
-        transfer::public_transfer(admin_cap, ADMIN);
+        transfer::public_transfer(risk_cap, ADMIN);
     };
     scenario.next_tx(TRADER);
     {

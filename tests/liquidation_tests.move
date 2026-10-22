@@ -86,14 +86,6 @@ fun test_unhealthy_position(){
         ts::return_shared(vault);
         ts::return_shared(treasury);
     };
-    scenario.next_tx(ADMIN);
-    {
-        let admin_cap = admin::mint_for_testing(scenario.ctx());
-        let mut market = scenario.take_shared<Market>();
-        market::set_mock_price(&mut market, &admin_cap,46_000);
-        ts::return_shared(market);
-        transfer::public_transfer(admin_cap, ADMIN);
-    };
     scenario.next_tx(KEEPER);
     {
         let mut market = scenario.take_shared<Market>();
@@ -153,14 +145,6 @@ fun test_unhealthy_position_non_liquidatable(){
         ts::return_shared(vault);
         ts::return_shared(treasury);
     };
-    scenario.next_tx(ADMIN);
-    {
-        let admin_cap = admin::mint_for_testing(scenario.ctx());
-        let mut market = scenario.take_shared<Market>();
-        market::set_mock_price(&mut market, &admin_cap,48_000);
-        ts::return_shared(market);
-        transfer::public_transfer(admin_cap, ADMIN);
-    };
     scenario.next_tx(KEEPER);
     {
         let mut market = scenario.take_shared<Market>();
@@ -207,14 +191,6 @@ fun test_unhealthy_position_bad_debt(){ //vault rugi
         ts::return_shared(market);
         ts::return_shared(vault);
         ts::return_shared(treasury);
-    };
-    scenario.next_tx(ADMIN);
-    {
-        let admin_cap = admin::mint_for_testing(scenario.ctx());
-        let mut market = scenario.take_shared<Market>();
-        market::set_mock_price(&mut market, &admin_cap,40_000);
-        ts::return_shared(market);
-        transfer::public_transfer(admin_cap, ADMIN);
     };
     scenario.next_tx(KEEPER);
     {
@@ -272,14 +248,6 @@ fun test_unhealthy_position_with_funding(){
         
     };
     sui::clock::increment_for_testing(&mut clock, 39_600_000);
-    scenario.next_tx(ADMIN);
-    {
-        let admin_cap = admin::mint_for_testing(scenario.ctx());
-        let mut market = scenario.take_shared<Market>();
-        market::set_mock_price(&mut market, &admin_cap,48_000);
-        ts::return_shared(market);
-        transfer::public_transfer(admin_cap, ADMIN);
-    };
     scenario.next_tx(KEEPER);
     {
         let mut market = scenario.take_shared<Market>();
@@ -337,15 +305,6 @@ fun liquidate_still_works_when_market_paused(){
         ts::return_shared(market);
         ts::return_shared(vault);
         ts::return_shared(treasury);
-    };
-    scenario.next_tx(ADMIN);
-    {
-        let admin_cap = admin::mint_for_testing(scenario.ctx());
-        let mut market = scenario.take_shared<Market>();
-        market::set_mock_price(&mut market, &admin_cap,46_000);
-        market::set_paused(&mut market, &admin_cap, true);
-        ts::return_shared(market);
-        transfer::public_transfer(admin_cap, ADMIN);
     };
     scenario.next_tx(KEEPER);
     {
@@ -417,14 +376,6 @@ fun liquiditon_bad_debt_fully_covered_by_treasury(){
         ts::return_shared(treasury);
     };
 
-    scenario.next_tx(ADMIN);
-    {
-        let admin_cap = admin::mint_for_testing(scenario.ctx());
-        let mut market = scenario.take_shared<Market>();
-        market::set_mock_price(&mut market, &admin_cap, 40_000);
-        ts::return_shared(market);
-        transfer::public_transfer(admin_cap, ADMIN);
-    };
     
     scenario.next_tx(KEEPER);
     {
@@ -474,14 +425,6 @@ fun liquidate_reverts_when_vault_market_mismatched(){
         ts::return_shared(treasury);
     };
     scenario.next_tx(ADMIN);
-    {
-        let admin_cap = admin::mint_for_testing(scenario.ctx());
-        let mut market = scenario.take_shared<Market>();
-        market::set_mock_price(&mut market, &admin_cap, 46_000);
-        ts::return_shared(market);
-        transfer::public_transfer(admin_cap, ADMIN);
-    };
-    scenario.next_tx(ADMIN);
     let wrong_vault_id = vault::init_for_testing(object::id_from_address(@0xDEAD), scenario.ctx());
     scenario.next_tx(KEEPER);
     {
@@ -520,11 +463,11 @@ fun liquidate_with_mock_price_on_demo_market(){
     };
     scenario.next_tx(ADMIN);
     {
-        let admin_cap = admin::mint_for_testing(scenario.ctx());
+        let risk_cap = admin::mint_risk_cap_for_testing(scenario.ctx());
         let mut market = scenario.take_shared<Market>();
-        market::set_mock_price(&mut market, &admin_cap, 46_000);
+        market::set_mock_price(&mut market, &risk_cap, 46_000);
         ts::return_shared(market);
-        transfer::public_transfer(admin_cap, ADMIN);
+        transfer::public_transfer(risk_cap, ADMIN);
     };
     scenario.next_tx(KEEPER);
     {
@@ -550,6 +493,268 @@ fun liquidate_with_mock_price_on_demo_market(){
         let payout = scenario.take_from_sender<Coin<TEST_USDC>>();
         assert!(coin::value(&payout) == 1000-100, 1);
         transfer::public_transfer(payout, TRADER);
+    };
+    sui::clock::destroy_for_testing(clock);
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code=3)]
+fun liquidate_with_mock_price_rejects_non_demo_market(){
+    let mut scenario = ts::begin(ADMIN);
+    let clock = setup(&mut scenario);
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let collateral = coin::mint_for_testing<TEST_USDC>(10_000, scenario.ctx());
+        router::open_position_at_price(
+            &mut market, &mut vault, &mut treasury, collateral,
+            true, 10, 50_000, &clock, scenario.ctx()
+        );
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    scenario.next_tx(KEEPER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let position = scenario.take_shared<Position>();
+        liquidation::liquidate_with_mock_price(
+            &mut market, &mut vault, &mut treasury, position, &clock, scenario.ctx()
+        );
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    sui::clock::destroy_for_testing(clock);
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code=2)]
+fun sanctioned_path_cannot_liquidate_healthy_position(){
+    let mut scenario = ts::begin(ADMIN);
+    let clock = setup_with_mode(&mut scenario, true);
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let collateral = coin::mint_for_testing<TEST_USDC>(10_000, scenario.ctx());
+        router::open_position_with_mock_price(
+            &mut market, &mut vault, &mut treasury, collateral,
+            true, 10, &clock, scenario.ctx()
+        );
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    scenario.next_tx(KEEPER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let position = scenario.take_shared<Position>();
+        liquidation::liquidate_with_mock_price(
+            &mut market, &mut vault, &mut treasury, position, &clock, scenario.ctx()
+        );
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    sui::clock::destroy_for_testing(clock);
+    scenario.end();
+}
+
+#[test]
+fun liquidation_releases_long_open_interest(){
+    let mut scenario = ts::begin(ADMIN);
+    let mut clock = setup(&mut scenario);
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let collateral = coin::mint_for_testing<TEST_USDC>(10_000, scenario.ctx());
+        router::open_position_at_price(&mut market,
+         &mut vault,
+         &mut treasury,
+         collateral,
+         true,
+         10,
+         50_000,
+         &clock,
+         scenario.ctx());
+        assert!(market::long_open_interest(&market) == 100_000, 0);
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    scenario.next_tx(KEEPER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let position = scenario.take_shared<Position>();
+        liquidation::liquidate_at_price(
+            &mut market,
+            &mut vault,
+            &mut treasury,
+            position,
+            46_000,
+            &clock,
+            scenario.ctx()
+        );
+        assert!(market::long_open_interest(&market) == 0, 1);
+        assert!(market::short_open_interest(&market) == 0, 2);
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    sui::clock::destroy_for_testing(clock);
+    scenario.end();
+}
+
+#[test]
+fun liquidation_releases_short_open_interest(){
+    let mut scenario = ts::begin(ADMIN);
+    let mut clock = setup(&mut scenario);
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let collateral = coin::mint_for_testing<TEST_USDC>(10_000, scenario.ctx());
+        router::open_position_at_price(&mut market,
+         &mut vault,
+         &mut treasury,
+         collateral,
+         false,
+         10,
+         50_000,
+         &clock,
+         scenario.ctx());
+        assert!(market::short_open_interest(&market) == 100_000, 0);
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    scenario.next_tx(KEEPER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let position = scenario.take_shared<Position>();
+        liquidation::liquidate_at_price(
+            &mut market,
+            &mut vault,
+            &mut treasury,
+            position,
+            54_000,
+            &clock,
+            scenario.ctx()
+        );
+        assert!(market::short_open_interest(&market) == 0, 1);
+        assert!(market::long_open_interest(&market) == 0, 2);
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    sui::clock::destroy_for_testing(clock);
+    scenario.end();
+}
+
+#[test]
+fun liquidation_releases_open_interest_on_bad_debt(){
+    let mut scenario = ts::begin(ADMIN);
+    let mut clock = setup(&mut scenario);
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let collateral = coin::mint_for_testing<TEST_USDC>(10_000, scenario.ctx());
+        router::open_position_at_price(&mut market,
+         &mut vault,
+         &mut treasury,
+         collateral,
+         true,
+         10,
+         50_000,
+         &clock,
+         scenario.ctx());
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    scenario.next_tx(KEEPER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let position = scenario.take_shared<Position>();
+        liquidation::liquidate_at_price(
+            &mut market,
+            &mut vault,
+            &mut treasury,
+            position,
+            40_000,
+            &clock,
+            scenario.ctx()
+        );
+        assert!(market::long_open_interest(&market) == 0, 0);
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    sui::clock::destroy_for_testing(clock);
+    scenario.end();
+}
+
+#[test]
+fun liquidation_frees_vault_liquidity_for_lp(){
+    let mut scenario = ts::begin(ADMIN);
+    let mut clock = setup(&mut scenario);
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let collateral = coin::mint_for_testing<TEST_USDC>(10_000, scenario.ctx());
+        router::open_position_at_price(&mut market,
+         &mut vault,
+         &mut treasury,
+         collateral,
+         true,
+         10,
+         50_000,
+         &clock,
+         scenario.ctx());
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    scenario.next_tx(KEEPER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let position = scenario.take_shared<Position>();
+        liquidation::liquidate_at_price(
+            &mut market,
+            &mut vault,
+            &mut treasury,
+            position,
+            46_000,
+            &clock,
+            scenario.ctx()
+        );
+        assert!(vault::free_liquidity(&vault, &market) == vault::total_balance(&vault), 0);
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
     };
     sui::clock::destroy_for_testing(clock);
     scenario.end();
