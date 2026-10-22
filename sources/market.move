@@ -1,6 +1,6 @@
 module perp_dex::market;
 
-use perp_dex::admin::AdminCap;
+use perp_dex::admin::{AdminCap, RiskCap};
 use sui::clock::{Clock, Self};
 
 
@@ -92,11 +92,12 @@ public fun create_market(
     });
 }
 
-public fun set_paused(market: &mut Market, _admin : &AdminCap, paused: bool){
+public fun set_paused(market: &mut Market, _risk : &RiskCap, paused: bool){
     market.paused = paused;
 }
 
-public fun set_mock_price(market: &mut Market, _admin :&AdminCap, new_price: u64){
+public fun set_mock_price(market: &mut Market, _risk :&RiskCap, new_price: u64){
+    assert!(market.demo_mode, ENotDemoMarket);
     market.mock_price = new_price;
 }
 

@@ -12,6 +12,7 @@ const EZeroAmount: u64 = 0;
 const EWrongVault: u64 = 1;
 const EWrongMarket : u64 = 2;
 const EInsufficientFreeLiquidity : u64 = 3;
+const EInvalidShareSplit : u64 = 4;
 
 public struct Vault has key {
     id: UID,
@@ -106,6 +107,35 @@ public fun withdraw_liquidity(
     });
 
     coin::from_balance(balance::split(&mut vault.balance, payout), ctx)
+}
+
+public fun split_receipt(receipt: &mut LpReceipt, shares: u64, ctx: &mut TxContext): LpReceipt {
+    assert!(shares > 0 && shares < receipt.shares, EInvalidShareSplit);
+    receipt.shares = receipt.shares - shares;
+    LpReceipt {
+        id: object::new(ctx),
+        vault_id: receipt.vault_id,
+        shares
+    }
+}
+
+public fun merge_receipt(receipt: &mut LpReceipt, other: LpReceipt) {
+    let LpReceipt { id, vault_id, shares } = other;
+    assert!(vault_id == receipt.vault_id, EWrongVault);
+    object::delete(id);
+    receipt.shares = receipt.shares + shares;
+}
+
+public fun free_liquidity(vault: &Vault, market: &Market): u64 {
+    let reserved = market::long_open_interest(market) + market::short_open_interest(market);
+    let balance = balance::value(&vault.balance);
+    if (reserved >= balance) { 0 } else { balance - reserved }
+}
+
+public fun redeemable_value(vault: &Vault, shares: u64): u64 {
+    if (vault.lp_supply == 0) { 0 } else {
+        math::mul_div(shares, balance::value(&vault.balance), vault.lp_supply)
+    }
 }
 
 public fun total_balance(vault: &Vault): u64 {

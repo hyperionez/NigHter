@@ -59,7 +59,7 @@ public fun liquidate_with_mock_price(
     liquidate_at_price(market, vault, treasury, position, current_price, clock, ctx);
 }
 
-public fun liquidate_at_price(
+public(package) fun liquidate_at_price(
     market: &mut Market,
     vault: &mut Vault,
     treasury: &mut Treasury,
@@ -130,6 +130,11 @@ public fun liquidate_at_price(
         _,
         _,
         _) = position::destroy(position);
+    if(is_long){
+        market::add_long_close_interest(market, size);
+    } else {
+        market::add_short_close_interest(market, size);
+    };
     let final_equity = if(net_is_profit) {
         collateral + net_result
     } else {

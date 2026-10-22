@@ -3,7 +3,7 @@ module perp_dex::treasury;
 use sui::balance::{Self, Balance};
 use perp_dex::test_usdc::TEST_USDC;
 use sui::coin::{Coin, Self};
-use perp_dex::admin::AdminCap;
+use perp_dex::admin::TreasurerCap;
 use sui::event;
 
 public struct Treasury has key{
@@ -45,7 +45,7 @@ public fun total_balance(treasury : &Treasury) : u64 {
 
 public fun withdraw_treasury(
     treasury : &mut Treasury,
-    _adminCap: &AdminCap,
+    _treasurer: &TreasurerCap,
     amount : u64,
     ctx: &mut TxContext
 ) : Coin<TEST_USDC> {
