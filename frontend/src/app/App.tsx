@@ -7,6 +7,7 @@ import { PositionList } from '@/features/trading/components/PositionList.tsx'
 import { LiquidityPanel } from '@/features/liquidity/components/LiquidityPanel.tsx'
 import { AdminPanel } from '@/features/admin/components/AdminPanel.tsx'
 import { useRoles } from '@/features/roles/hooks/useRoles.ts'
+import { BrandMark } from './BrandMark.tsx'
 import './App.css'
 
 type Tab = 'trade' | 'earn' | 'admin'
@@ -35,7 +36,10 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div className="brand">
-          <h1>perp_dex</h1>
+          <span className="brand-lockup">
+            <BrandMark size={20} />
+            <h1>NigHter</h1>
+          </span>
           <nav className="tabs">
             {tabs.map((t) => (
               <button
