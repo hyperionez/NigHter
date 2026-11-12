@@ -3,17 +3,27 @@ import { useSignedPrice } from '../hooks/useSignedPrice.ts'
 import { formatUsdc, formatPrice, formatBps, maxLeverageFrom } from '@/lib/format.ts'
 import './MarketDashboard.css'
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Cell({ label, value, children }: { label: string; value?: string; children?: React.ReactNode }) {
   return (
-    <div className="stat">
+    <div className="bar-cell">
       <span className="stat-label">{label}</span>
-      <span className="stat-value">{value}</span>
+      {value !== undefined && <span className="stat-value">{value}</span>}
+      {children}
+    </div>
+  )
+}
+
+function Param({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="param">
+      <span className="stat-label">{label}</span>
+      <span className="param-value">{value}</span>
     </div>
   )
 }
 
 function formatAge(ageMs: number | undefined): string {
-  if (ageMs === undefined) return 'n/a'
+  if (ageMs === undefined) return 'no report'
   return `${(ageMs / 1000).toFixed(1)}s ago`
 }
 
@@ -25,7 +35,7 @@ export function MarketDashboard() {
   const stalenessWindowMs = market ? Number(market.maxPriceStalenessSecs) * 1000 : undefined
   const signed = useSignedPrice(signedMode, stalenessWindowMs)
 
-  if (marketPending || vaultPending) return <p>Loading market data...</p>
+  if (marketPending || vaultPending) return <p className="muted">Loading market data...</p>
   if (marketError || vaultError || !market || !vault) {
     return <p className="error">Failed to load on-chain market data.</p>
   }
@@ -37,43 +47,74 @@ export function MarketDashboard() {
       : 'loading...'
     : `$${formatPrice(markPrice)}`
 
+  const longOi = Number(market.longOpenInterest)
+  const shortOi = Number(market.shortOpenInterest)
+  const totalOi = longOi + shortOi
+  const longShare = totalOi > 0 ? (longOi / totalOi) * 100 : 50
+
   return (
     <section className="market-dashboard">
       <div className="market-heading">
         <h2>BTC-PERP-DEMO</h2>
         {signedMode ? (
-          <span className="badge">signed price feed</span>
+          <span className="badge badge-signed">signed price feed</span>
         ) : (
-          market.demoMode && <span className="badge">demo market — mock price</span>
+          market.demoMode && <span className="badge">demo market, mock price</span>
         )}
         {signed.isStale && <span className="badge badge-warn">price stale</span>}
         {market.paused && <span className="badge badge-warn">paused</span>}
       </div>
 
-      {signedMode && signed.error && (
-        <p className="error">{signed.error.message}</p>
+      {signed.blockedReason && (
+        <p className="feed-banner">
+          <strong>Signed price feed {signed.state}.</strong> {signed.blockedReason}
+          {signed.error && <span className="feed-detail">{signed.error.message}</span>}
+        </p>
       )}
 
-      <div className="stat-grid">
-        <Stat label={signedMode ? 'Mark price (signed)' : 'Mark price'} value={markPriceLabel} />
-        {signedMode && (
-          <Stat
-            label={`Price age (max ${market.maxPriceStalenessSecs}s)`}
-            value={formatAge(signed.ageMs)}
-          />
-        )}
-        <Stat label="Long open interest" value={`$${formatUsdc(market.longOpenInterest)}`} />
-        <Stat label="Short open interest" value={`$${formatUsdc(market.shortOpenInterest)}`} />
-        <Stat label="Max open interest" value={`$${formatUsdc(market.maxOpenInterest)}`} />
-        <Stat label="Min position size" value={`$${formatUsdc(market.minPositionSize)}`} />
-        <Stat label="Max leverage" value={`${maxLeverageFrom(market.initialMarginBps)}x`} />
-        <Stat label="Maintenance margin" value={formatBps(market.maintenanceMarginBps)} />
-        <Stat label="Open / close fee" value={`${formatBps(market.openFeeBps)} / ${formatBps(market.closeFeeBps)}`} />
-        <Stat label="Funding rate / hour" value={formatBps(market.fundingRateBpsPerHour)} />
-        <Stat label="Liquidation penalty" value={formatBps(market.liquidationPenaltyBps)} />
-        <Stat label="Vault TVL" value={`$${formatUsdc(vault.balance)}`} />
-        <Stat label="LP shares" value={formatUsdc(vault.lpSupply)} />
+      <div className="market-bar">
+        <Cell label="Mark price" value={markPriceLabel}>
+          {signedMode && (
+            <span className={`cell-note feed-${signed.state}`}>
+              <span className="feed-dot" aria-hidden="true" />
+              {formatAge(signed.ageMs)}
+              <span className="feed-window">of {market.maxPriceStalenessSecs}s</span>
+            </span>
+          )}
+        </Cell>
+
+        <Cell label="Open interest">
+          <div className="oi-values">
+            <span className="oi-long">${formatUsdc(market.longOpenInterest)}</span>
+            <span className="oi-sep">/</span>
+            <span className="oi-short">${formatUsdc(market.shortOpenInterest)}</span>
+          </div>
+          <div className="oi-ratio" aria-hidden="true">
+            <span className="oi-ratio-long" style={{ width: `${longShare}%` }} />
+            <span className="oi-ratio-short" style={{ width: `${100 - longShare}%` }} />
+          </div>
+        </Cell>
+
+        <Cell label="Funding / 1h" value={formatBps(market.fundingRateBpsPerHour)} />
+        <Cell label="Vault TVL" value={`$${formatUsdc(vault.balance)}`} />
+        <Cell label="Max leverage" value={`${maxLeverageFrom(market.initialMarginBps)}x`} />
       </div>
+
+      <details className="market-params">
+        <summary>Market parameters</summary>
+        <div className="param-grid">
+          <Param label="Max open interest" value={`$${formatUsdc(market.maxOpenInterest)}`} />
+          <Param label="Min position size" value={`$${formatUsdc(market.minPositionSize)}`} />
+          <Param label="Maintenance margin" value={formatBps(market.maintenanceMarginBps)} />
+          <Param label="Initial margin" value={formatBps(market.initialMarginBps)} />
+          <Param label="Open fee" value={formatBps(market.openFeeBps)} />
+          <Param label="Close fee" value={formatBps(market.closeFeeBps)} />
+          <Param label="Liquidation penalty" value={formatBps(market.liquidationPenaltyBps)} />
+          <Param label="Keeper reward" value={formatBps(market.keeperRewardBps)} />
+          <Param label="Price staleness window" value={`${market.maxPriceStalenessSecs}s`} />
+          <Param label="LP shares" value={formatUsdc(vault.lpSupply)} />
+        </div>
+      </details>
     </section>
   )
 }
