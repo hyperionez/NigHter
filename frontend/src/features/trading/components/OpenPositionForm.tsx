@@ -5,6 +5,7 @@ import { useSignedPrice } from '@/features/market/hooks/useSignedPrice.ts'
 import { useUsdcCoins, largestCoin } from '../hooks/useUsdcCoins.ts'
 import { useOpenPosition } from '../hooks/useOpenPosition.ts'
 import { formatUsdc, formatPrice, formatBps, toUsdcRaw, maxLeverageFrom } from '@/lib/format.ts'
+import { usePrivacy } from '@/app/privacy.tsx'
 import './OpenPositionForm.css'
 
 const LEVERAGE_PRESETS = [2, 5, 10]
@@ -14,6 +15,7 @@ export function OpenPositionForm() {
   const { market } = useMarket()
   const { data: coins } = useUsdcCoins()
   const openPosition = useOpenPosition()
+  const { mask } = usePrivacy()
 
   const signedMode = market?.usesSignedPrice === true
   const stalenessWindowMs = market ? Number(market.maxPriceStalenessSecs) * 1000 : undefined
@@ -47,15 +49,15 @@ export function OpenPositionForm() {
   const problem = !market
     ? 'Loading market...'
     : market.paused
-      ? 'Market is paused, so opens and closes are rejected on chain.'
+      ? 'Trading is switched off right now, so the chain would turn this down.'
       : signed.blockedReason
         ? signed.blockedReason
         : collateralRaw <= 0n
-          ? 'Enter a collateral amount'
+          ? 'Enter an amount'
           : collateralRaw > available
-            ? `Not enough TEST_USDC (have $${formatUsdc(available)})`
+            ? `Not enough in your balance (you have ${formatUsdc(available)})`
             : sizeRaw < BigInt(market.minPositionSize)
-              ? `Position size below minimum ($${formatUsdc(market.minPositionSize)})`
+              ? `Trade size is under the ${formatUsdc(market.minPositionSize)} minimum`
               : undefined
 
   function submit() {
@@ -89,8 +91,8 @@ export function OpenPositionForm() {
 
       <div className="field">
         <div className="field-head">
-          <label htmlFor="collateral">Collateral</label>
-          <span className="field-aside">Balance {formatUsdc(available)}</span>
+          <label htmlFor="collateral">Amount</label>
+          <span className="field-aside">Balance {mask(formatUsdc(available))}</span>
         </div>
         <div className="input-shell">
           <input
@@ -105,18 +107,23 @@ export function OpenPositionForm() {
 
       <div className="field">
         <div className="field-head">
-          <label htmlFor="leverage-range">Leverage</label>
+          <label htmlFor="leverage-range">Multiplier</label>
           <strong className="leverage-value">{leverageNum}x</strong>
         </div>
         <input
           id="leverage-range"
-          className="leverage-range"
+          className="range"
           type="range"
           min={1}
           max={sliderMax}
           step={1}
           value={leverageNum}
           disabled={!market}
+          style={{
+            ['--range-fill' as string]: `${
+              sliderMax > 1 ? ((leverageNum - 1) / (sliderMax - 1)) * 100 : 100
+            }%`,
+          }}
           onChange={(e) => setLeverage(Number(e.target.value))}
         />
         <div className="leverage-chips">
@@ -136,22 +143,22 @@ export function OpenPositionForm() {
 
       <dl className="summary">
         <div className="summary-row">
-          <dt>Position size</dt>
-          <dd>${formatUsdc(sizeRaw)}</dd>
+          <dt>Trade size</dt>
+          <dd>{mask(`$${formatUsdc(sizeRaw)}`)}</dd>
         </div>
         <div className="summary-row">
-          <dt>Entry price</dt>
+          <dt>Opening price</dt>
           <dd>{entryPrice === undefined ? '--' : `$${formatPrice(entryPrice)}`}</dd>
         </div>
         <div className="summary-row">
-          <dt>Liquidation est.</dt>
+          <dt>Auto-close price</dt>
           <dd className={isLong ? 'num-long' : 'num-short'}>
             {liquidationPrice === undefined ? '--' : `$${formatPrice(liquidationPrice)}`}
           </dd>
         </div>
         <div className="summary-row">
           <dt>
-            Open fee <span className="dim">{market ? formatBps(market.openFeeBps) : ''}</span>
+            Opening fee <span className="dim">{market ? formatBps(market.openFeeBps) : ''}</span>
           </dt>
           <dd>${formatUsdc(openFeeRaw)}</dd>
         </div>

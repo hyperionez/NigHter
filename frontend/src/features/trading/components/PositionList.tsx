@@ -4,12 +4,14 @@ import { useSignedPrice } from '@/features/market/hooks/useSignedPrice.ts'
 import { usePositions } from '../hooks/usePositions.ts'
 import { useClosePosition } from '../hooks/useClosePosition.ts'
 import { formatUsdc, formatPrice, formatBps } from '@/lib/format.ts'
+import { usePrivacy } from '@/app/privacy.tsx'
 import './PositionList.css'
 
 export function PositionList() {
   const { market } = useMarket()
   const { data: positions, isPending } = usePositions()
   const closePosition = useClosePosition()
+  const { mask } = usePrivacy()
 
   const signedMode = market?.usesSignedPrice === true
   const stalenessWindowMs = market ? Number(market.maxPriceStalenessSecs) * 1000 : undefined
@@ -18,22 +20,22 @@ export function PositionList() {
   if (!market) return null
 
   const closeBlockedReason = market.paused
-    ? 'The market is paused. Liquidation and funding keep running, but closes are rejected on chain.'
+    ? 'Trading is switched off. Your trade stays open and keeps paying the hourly rate, but it cannot be closed until trading is back on.'
     : signed.blockedReason
 
   if (isPending || !positions || positions.length === 0) {
     return (
       <section className="panel positions">
         <div className="panel-head">
-          <span className="panel-title">Positions</span>
+          <span className="panel-title">Your trades</span>
           <span className="panel-meta">0</span>
         </div>
         <div className="positions-empty">
-          <p className="muted">{isPending ? 'Loading positions...' : 'No open positions yet.'}</p>
+          <p className="muted">{isPending ? 'Loading your trades...' : 'No open trades yet.'}</p>
           {!isPending && (
             <p className="hint">
-              An open position appears here with live PnL and its margin ratio against the{' '}
-              {Number(market.maintenanceMarginBps) / 100}% maintenance floor.
+              A trade you open shows up here with its live profit or loss, and how close it is to
+              the {Number(market.maintenanceMarginBps) / 100}% level where it closes automatically.
             </p>
           )}
         </div>
@@ -55,7 +57,7 @@ export function PositionList() {
   return (
     <section className="panel positions">
       <div className="panel-head">
-        <span className="panel-title">Positions</span>
+        <span className="panel-title">Your trades</span>
         <span className="panel-meta">{positions.length}</span>
       </div>
 
@@ -63,12 +65,12 @@ export function PositionList() {
         <table className="data-table position-table">
           <thead>
             <tr>
-              <th scope="col">Side</th>
+              <th scope="col">Direction</th>
               <th scope="col" className="num">Size</th>
-              <th scope="col" className="num">Entry</th>
-              <th scope="col" className="num">Mark</th>
-              <th scope="col" className="num">PnL</th>
-              <th scope="col">Margin</th>
+              <th scope="col" className="num">Opening price</th>
+              <th scope="col" className="num">Current price</th>
+              <th scope="col" className="num">Profit / loss</th>
+              <th scope="col">Safety</th>
               <th scope="col" />
             </tr>
           </thead>
@@ -87,7 +89,7 @@ export function PositionList() {
                       {p.isLong ? 'LONG' : 'SHORT'}
                     </span>
                   </td>
-                  <td className="num">{formatUsdc(p.size)}</td>
+                  <td className="num">{mask(formatUsdc(p.size))}</td>
                   <td className="num">{formatPrice(p.entryPrice)}</td>
                   <td className="num">{markPrice === undefined ? '--' : formatPrice(markPrice)}</td>
                   {health === undefined ? (
@@ -98,8 +100,7 @@ export function PositionList() {
                   ) : (
                     <>
                       <td className={health.netIsProfit ? 'num num-long' : 'num num-short'}>
-                        {health.netIsProfit ? '+' : '-'}
-                        {formatUsdc(health.netResult)}
+                        {mask(`${health.netIsProfit ? '+' : '-'}${formatUsdc(health.netResult)}`)}
                       </td>
                       <td>
                         <div className="margin-cell">
