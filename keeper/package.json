@@ -10,6 +10,8 @@
     "register-price-feed": "tsx src/registerPriceFeed.ts",
     "open-position": "tsx src/openPosition.ts",
     "verify-staleness": "tsx src/verifyStaleness.ts",
+    "verify-signed-price": "tsx src/verifySignedPrice.ts",
+    "generate-price-signer": "tsx src/generatePriceSigner.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
