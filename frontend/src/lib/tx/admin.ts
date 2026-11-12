@@ -1,5 +1,5 @@
 import { Transaction } from '@mysten/sui/transactions'
-import { config } from '@/config/index.ts'
+import { config, CLOCK_OBJECT_ID } from '@/config/index.ts'
 
 export interface SetPausedParams {
   riskCapId: string
@@ -24,7 +24,12 @@ export function buildSetMockPriceTx({ capId, price }: SetPriceParams): Transacti
   const tx = new Transaction()
   tx.moveCall({
     target: `${config.packageId}::market::set_mock_price`,
-    arguments: [tx.object(config.marketId), tx.object(capId), tx.pure.u64(price)],
+    arguments: [
+      tx.object(config.marketId),
+      tx.object(capId),
+      tx.pure.u64(price),
+      tx.object(CLOCK_OBJECT_ID),
+    ],
   })
   return tx
 }
@@ -33,7 +38,12 @@ export function buildSetDemoPriceTx({ capId, price }: SetPriceParams): Transacti
   const tx = new Transaction()
   tx.moveCall({
     target: `${config.packageId}::market::set_demo_price`,
-    arguments: [tx.object(config.marketId), tx.object(capId), tx.pure.u64(price)],
+    arguments: [
+      tx.object(config.marketId),
+      tx.object(capId),
+      tx.pure.u64(price),
+      tx.object(CLOCK_OBJECT_ID),
+    ],
   })
   return tx
 }

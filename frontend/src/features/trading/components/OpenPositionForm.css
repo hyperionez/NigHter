@@ -115,3 +115,49 @@
 .success {
   color: #22c55e;
 }
+
+.leverage-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.leverage-head label {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.leverage-value {
+  font-family: var(--mono);
+  font-size: 15px;
+  color: var(--text-h);
+}
+
+.leverage-range {
+  width: 100%;
+  margin: 6px 0 2px;
+  accent-color: var(--accent);
+  background: transparent;
+  cursor: pointer;
+}
+
+.leverage-range:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.leverage-range:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.leverage-scale {
+  display: flex;
+  justify-content: space-between;
+}
+
+.leverage-scale span {
+  font-size: 11px;
+  color: var(--text);
+}
