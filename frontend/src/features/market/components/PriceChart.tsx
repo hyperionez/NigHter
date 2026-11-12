@@ -11,7 +11,8 @@ const MIN_VISIBLE = 15
 const MAX_VISIBLE = 320
 const DEFAULT_VISIBLE = 90
 const RIGHT_MARGIN = 0.12
-const AXIS_WIDTH = 58
+const MIN_AXIS_WIDTH = 56
+const MAX_AXIS_WIDTH = 120
 const MIN_PLOT_HEIGHT = 180
 
 export interface Candle {
@@ -49,6 +50,28 @@ function priceLabel(price: number): string {
   return price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+function niceTicks(low: number, high: number, target: number): number[] {
+  const span = high - low
+  if (!(span > 0)) return [low]
+  const rough = span / target
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rough)))
+  const normalised = rough / magnitude
+  const step =
+    (normalised >= 5 ? 5 : normalised >= 2.5 ? 2.5 : normalised >= 2 ? 2 : 1) * magnitude
+  const out: number[] = []
+  for (let value = Math.ceil(low / step) * step; value <= high; value += step) {
+    out.push(Number(value.toFixed(10)))
+  }
+  return out
+}
+
+function dateLabel(ms: number, interval: Interval): string {
+  const date = new Date(ms)
+  const day = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+  if (interval === '1d' || interval === '1w') return day
+  return `${day}, ${date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`
+}
+
 function timeLabel(ms: number, interval: Interval): string {
   const date = new Date(ms)
   if (interval === '1d' || interval === '1w') {
@@ -58,7 +81,8 @@ function timeLabel(ms: number, interval: Interval): string {
 }
 
 export function PriceChart() {
-  const [interval, setInterval] = useState<Interval>('1m')
+  const [interval, setInterval] = useState<Interval>('1d')
+  const [scale, setScale] = useState<'auto' | 'log'>('auto')
   const [view, setView] = useState<View | undefined>(undefined)
   const [size, setSize] = useState({ width: 760, height: 300 })
   const [cursor, setCursor] = useState<{ x: number; y: number } | undefined>(undefined)
@@ -167,11 +191,42 @@ export function PriceChart() {
   const top = high + pad
   const span = top - (low - pad) || 1
 
-  const y = (price: number) => ((top - price) / span) * plotHeight
+  const bottom = top - span
+  const logTop = Math.log(Math.max(top, 1e-9))
+  const logBottom = Math.log(Math.max(bottom, 1e-9))
+  const logSpan = logTop - logBottom || 1
+  const useLog = scale === 'log' && bottom > 0
+
+  const y = (price: number) =>
+    useLog
+      ? ((logTop - Math.log(Math.max(price, 1e-9))) / logSpan) * plotHeight
+      : ((top - price) / span) * plotHeight
+
+  const priceAt = (offset: number) =>
+    useLog
+      ? Math.exp(logTop - (offset / plotHeight) * logSpan)
+      : top - (offset / plotHeight) * span
+
   const x = (index: number) => (index - first) * slot + slot / 2
 
   const last = candles?.[total - 1]
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => top - f * span)
+  const ticks = visible.length ? niceTicks(bottom, top, plotHeight > 360 ? 7 : 5) : []
+
+  const tickStep = ticks.length > 1 ? Math.abs(ticks[1] - ticks[0]) : 0
+  const tickDecimals = tickStep >= 1 ? 0 : 2
+  const tickText = (value: number) =>
+    value.toLocaleString(undefined, {
+      minimumFractionDigits: tickDecimals,
+      maximumFractionDigits: tickDecimals,
+    })
+
+  const widestLabel = Math.max(
+    7,
+    ...ticks.map((tick) => tickText(tick).length),
+    last ? priceLabel(last.close).length + 2 : 0,
+    cursor ? priceLabel(priceAt(cursor.y)).length + 2 : 0,
+  )
+  const axisWidth = clamp(Math.round(widestLabel * 6 + 16), MIN_AXIS_WIDTH, MAX_AXIS_WIDTH)
 
   const axisLabels = visible.length
     ? [0, 0.25, 0.5, 0.75, 1].map((f) => {
@@ -212,6 +267,25 @@ export function PriceChart() {
             </span>
           </span>
         )}
+        <div className="chart-intervals">
+          <button
+            type="button"
+            className={scale === 'auto' ? 'interval interval-on' : 'interval'}
+            title="Fit the visible candles"
+            onClick={() => setScale('auto')}
+          >
+            Auto
+          </button>
+          <button
+            type="button"
+            className={scale === 'log' ? 'interval interval-on' : 'interval'}
+            title="Space price levels logarithmically"
+            onClick={() => setScale('log')}
+          >
+            Log
+          </button>
+        </div>
+
         <button
           type="button"
           className="interval"
@@ -282,10 +356,10 @@ export function PriceChart() {
           {error && <span className="chart-error">Chart unavailable: {error.message}</span>}
         </div>
 
-        <div className="chart-axis-y" style={{ width: AXIS_WIDTH }}>
+        <div className="chart-axis-y" style={{ width: axisWidth }}>
           {ticks.map((price) => (
             <span key={price} className="axis-tick" style={{ top: y(price) }}>
-              {priceLabel(price)}
+              {tickText(price)}
             </span>
           ))}
           {last && (
@@ -295,16 +369,24 @@ export function PriceChart() {
           )}
           {cursor && (
             <span className="axis-cursor" style={{ top: cursor.y }}>
-              {priceLabel(top - (cursor.y / plotHeight) * span)}
+              {priceLabel(priceAt(cursor.y))}
             </span>
           )}
         </div>
       </div>
 
-      <div className="chart-axis-x" style={{ paddingRight: AXIS_WIDTH }}>
+      <div className="chart-axis-x" style={{ paddingRight: axisWidth }}>
         {axisLabels.map((tick) => (
           <span key={tick.key}>{tick.label}</span>
         ))}
+        {cursor && hovered && (
+          <span
+            className="axis-x-cursor"
+            style={{ left: clamp(cursor.x, 56, Math.max(56, plotWidth - 56)) }}
+          >
+            {dateLabel(hovered.openTime, interval)}
+          </span>
+        )}
       </div>
     </section>
   )
