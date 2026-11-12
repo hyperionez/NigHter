@@ -5,10 +5,20 @@ import { PositionStore } from "./positionStore.js";
 import { syncEvents } from "./eventIndexer.js";
 import { runLiquidationSweep } from "./liquidationRunner.js";
 import { runFundingCrank } from "./fundingRunner.js";
+import { startPriceServer } from "./priceServer.js";
+import { priceSignerPublicKeyHex } from "./priceSigner.js";
 
 async function main() {
   console.log(`perp_dex keeper starting - address ${keeperAddress}, market ${config.marketId}`);
   console.log(`price source: ${config.priceSource} (see README before expecting real liquidations to fire)`);
+
+  if (config.priceServerEnabled) {
+    const url = await startPriceServer();
+    console.log(`[price-server] listening on ${url} - GET ${url}/price, GET ${url}/health`);
+    console.log(`[price-server] signer public key ${priceSignerPublicKeyHex()}`);
+    console.log(`[price-server] that key is create_market's price_signer argument, and is not a secret`);
+    console.log(`[price-server] allowed origin ${config.priceSignerAllowedOrigin}, symbol ${config.priceSignerSymbol}`);
+  }
 
   const store = new PositionStore();
   let cursor: Awaited<ReturnType<typeof syncEvents>> = {};
