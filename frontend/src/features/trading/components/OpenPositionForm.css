@@ -1,142 +1,63 @@
 .open-position {
-  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   padding: 16px;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
 }
 
-.open-position h2 {
-  margin: 0 0 14px;
-  font-size: 16px;
-}
-
 .side-toggle {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 3px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
 }
 
 .side {
-  flex: 1;
-  padding: 8px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
+  height: 30px;
+  border: none;
+  border-radius: 4px;
   background: transparent;
   color: var(--text);
-  cursor: pointer;
   font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.side:hover {
+  color: var(--text-h);
 }
 
 .side-active {
-  border-color: #16a34a;
-  color: #22c55e;
+  font-weight: 600;
+  color: var(--bg);
+}
+
+.side-long.side-active {
+  background: var(--long);
 }
 
 .side-short.side-active {
-  border-color: #dc2626;
-  color: #ef4444;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 12px;
-}
-
-.field span {
-  font-size: 12px;
-  color: var(--text);
-}
-
-.field input {
-  padding: 8px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-h);
-  font-family: var(--mono);
-  font-size: 15px;
-}
-
-.field small {
-  font-size: 11px;
-  color: var(--text);
-}
-
-.summary {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding: 10px 0;
-  border-top: 1px solid var(--border);
-  font-size: 13px;
-  color: var(--text);
-}
-
-.summary strong {
-  font-family: var(--mono);
-  font-size: 16px;
-  color: var(--text-h);
-}
-
-.submit {
-  width: 100%;
-  padding: 10px;
-  border-radius: 6px;
-  border: none;
-  background: var(--accent);
-  color: #fff;
-  font: inherit;
-  cursor: pointer;
-}
-
-.submit:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.hint,
-.error,
-.success {
-  font-size: 12px;
-  margin: 10px 0 0;
-  word-break: break-all;
-}
-
-.hint {
-  color: var(--text);
-}
-
-.error {
-  color: #ef4444;
-}
-
-.success {
-  color: #22c55e;
-}
-
-.leverage-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
-
-.leverage-head label {
-  font-size: 12px;
-  color: var(--text);
+  background: var(--short);
 }
 
 .leverage-value {
-  font-family: var(--mono);
-  font-size: 15px;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text-h);
 }
 
 .leverage-range {
   width: 100%;
-  margin: 6px 0 2px;
-  accent-color: var(--accent);
+  height: 20px;
+  margin: 0;
+  accent-color: var(--accent-ink);
   background: transparent;
   cursor: pointer;
 }
@@ -147,17 +68,81 @@
 }
 
 .leverage-range:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--accent-ink);
   outline-offset: 3px;
   border-radius: 4px;
 }
 
-.leverage-scale {
-  display: flex;
-  justify-content: space-between;
+.leverage-chips {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
 }
 
-.leverage-scale span {
-  font-size: 11px;
+.chip {
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface-raised);
   color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.chip:hover {
+  color: var(--text-h);
+}
+
+.chip-active {
+  border-color: var(--accent-ink);
+  color: var(--text-h);
+}
+
+.chip-max {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.summary-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.summary-row dt {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.summary-row dd {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-h);
+}
+
+.summary-row .dim {
+  color: var(--text-dim);
+}
+
+.num-long {
+  color: var(--long);
+}
+
+.num-short {
+  color: var(--short);
 }
