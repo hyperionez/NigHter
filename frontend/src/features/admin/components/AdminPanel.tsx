@@ -84,7 +84,7 @@ export function AdminPanel() {
             {market.usesSignedPrice ? (
               <>
                 <p className="card-meta">
-                  Disabled — this market takes its price from a signed keeper report, so the
+                  Disabled: this market takes its price from a signed keeper report, so the
                   trading entrypoints never read <code>mock_price</code> and writing it here would
                   change nothing on chain. The manual-price entrypoints themselves abort with{' '}
                   <code>ENotManualPriceMarket</code> (10) while a signer is set.

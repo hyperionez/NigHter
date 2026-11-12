@@ -8,21 +8,6 @@
   gap: 8px;
 }
 
-.badge {
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text);
-}
-
-.badge-admin {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
 .enforcement-note {
   margin: 14px 0 20px;
   font-size: 12px;
@@ -38,6 +23,7 @@
 
 .admin-card {
   padding: 16px;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
 }
@@ -65,10 +51,6 @@
 
 .via {
   opacity: 0.7;
-}
-
-.submit.danger {
-  background: #dc2626;
 }
 
 .signer {

@@ -72,24 +72,23 @@ export function LiquidityPanel() {
 
   return (
     <section className="liquidity">
-      <div className="pool-stats">
-        <div className="stat">
-          <span>Vault TVL</span>
-          <strong>${formatUsdc(balance)}</strong>
+      <div className="market-bar">
+        <div className="bar-cell">
+          <span className="stat-label">Vault TVL</span>
+          <span className="stat-value">${formatUsdc(balance)}</span>
         </div>
-        <div className="stat">
-          <span>Backing open positions</span>
-          <strong>${formatUsdc(locked)}</strong>
+        <div className="bar-cell">
+          <span className="stat-label">Backing open positions</span>
+          <span className="stat-value">${formatUsdc(locked)}</span>
         </div>
-        <div className="stat">
-          <span>Free liquidity</span>
-          <strong className={free === 0n ? 'warn' : undefined}>${formatUsdc(free)}</strong>
+        <div className="bar-cell">
+          <span className="stat-label">Free liquidity</span>
+          <span className={free === 0n ? 'stat-value warn' : 'stat-value'}>${formatUsdc(free)}</span>
         </div>
-        <div className="stat">
-          <span>Your share</span>
-          <strong>
-            ${formatUsdc(myValue)} <small>({sharePct}%)</small>
-          </strong>
+        <div className="bar-cell">
+          <span className="stat-label">Your share</span>
+          <span className="stat-value">${formatUsdc(myValue)}</span>
+          <span className="cell-note">{sharePct}% of the pool</span>
         </div>
       </div>
 
