@@ -1,0 +1,42 @@
+.ticker {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.market-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+.ticker-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ticker-mark {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+.ticker-change {
+  font-size: 11px;
+}
+
+.ticker-age {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
