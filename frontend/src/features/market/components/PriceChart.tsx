@@ -12,7 +12,7 @@ const MAX_VISIBLE = 320
 const DEFAULT_VISIBLE = 90
 const RIGHT_MARGIN = 0.12
 const AXIS_WIDTH = 58
-const PLOT_HEIGHT = 300
+const MIN_PLOT_HEIGHT = 180
 
 export interface Candle {
   openTime: number
@@ -60,7 +60,7 @@ function timeLabel(ms: number, interval: Interval): string {
 export function PriceChart() {
   const [interval, setInterval] = useState<Interval>('1m')
   const [view, setView] = useState<View | undefined>(undefined)
-  const [width, setWidth] = useState(760)
+  const [size, setSize] = useState({ width: 760, height: 300 })
   const [cursor, setCursor] = useState<{ x: number; y: number } | undefined>(undefined)
 
   const plotRef = useRef<HTMLDivElement>(null)
@@ -76,9 +76,11 @@ export function PriceChart() {
   useEffect(() => {
     const node = plotRef.current
     if (!node) return
-    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width))
+    const observer = new ResizeObserver(([entry]) =>
+      setSize({ width: entry.contentRect.width, height: entry.contentRect.height }),
+    )
     observer.observe(node)
-    setWidth(node.clientWidth)
+    setSize({ width: node.clientWidth, height: node.clientHeight })
     return () => observer.disconnect()
   }, [])
 
@@ -90,7 +92,8 @@ export function PriceChart() {
   const count = clamp(view?.count ?? DEFAULT_VISIBLE, MIN_VISIBLE, Math.max(MIN_VISIBLE, total))
   const right = view?.right ?? total - 1
 
-  const plotWidth = Math.max(80, width - AXIS_WIDTH)
+  const plotWidth = Math.max(80, size.width)
+  const plotHeight = Math.max(MIN_PLOT_HEIGHT, size.height)
   const slot = plotWidth / count
   const first = right - count + 1
 
@@ -164,7 +167,7 @@ export function PriceChart() {
   const top = high + pad
   const span = top - (low - pad) || 1
 
-  const y = (price: number) => ((top - price) / span) * PLOT_HEIGHT
+  const y = (price: number) => ((top - price) / span) * plotHeight
   const x = (index: number) => (index - first) * slot + slot / 2
 
   const last = candles?.[total - 1]
@@ -224,7 +227,6 @@ export function PriceChart() {
         <div
           ref={plotRef}
           className="chart-plot"
-          style={{ height: PLOT_HEIGHT }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={endDrag}
@@ -241,7 +243,7 @@ export function PriceChart() {
               : 'Price chart loading'
           }
         >
-          <svg width={plotWidth} height={PLOT_HEIGHT} className="chart-svg">
+          <svg width={plotWidth} height={plotHeight} className="chart-svg">
             {ticks.map((price) => (
               <line
                 key={price}
@@ -271,7 +273,7 @@ export function PriceChart() {
 
             {cursor && (
               <g className="crosshair">
-                <line x1={cursor.x} x2={cursor.x} y1={0} y2={PLOT_HEIGHT} />
+                <line x1={cursor.x} x2={cursor.x} y1={0} y2={plotHeight} />
                 <line x1={0} x2={plotWidth} y1={cursor.y} y2={cursor.y} />
               </g>
             )}
@@ -280,7 +282,7 @@ export function PriceChart() {
           {error && <span className="chart-error">Chart unavailable: {error.message}</span>}
         </div>
 
-        <div className="chart-axis-y" style={{ height: PLOT_HEIGHT, width: AXIS_WIDTH }}>
+        <div className="chart-axis-y" style={{ width: AXIS_WIDTH }}>
           {ticks.map((price) => (
             <span key={price} className="axis-tick" style={{ top: y(price) }}>
               {priceLabel(price)}
@@ -293,7 +295,7 @@ export function PriceChart() {
           )}
           {cursor && (
             <span className="axis-cursor" style={{ top: cursor.y }}>
-              {priceLabel(top - (cursor.y / PLOT_HEIGHT) * span)}
+              {priceLabel(top - (cursor.y / plotHeight) * span)}
             </span>
           )}
         </div>
