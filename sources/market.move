@@ -108,6 +108,7 @@ public fun set_paused(market: &mut Market, _risk : &RiskCap, paused: bool){
 
 public fun set_mock_price(market: &mut Market, _risk :&RiskCap, new_price: u64, clock: &Clock){
     assert!(market.demo_mode, ENotDemoMarket);
+    assert_manual_price_market(market);
     market.mock_price = new_price;
     market.last_price_update_ms = clock::timestamp_ms(clock);
 }
@@ -119,6 +120,7 @@ public fun mint_demo_price_cap(
     ctx: &mut TxContext
 ){
     assert!(market.demo_mode, ENotDemoMarket);
+    assert_manual_price_market(market);
     transfer::public_transfer(
         DemoPriceCap { id: object::new(ctx), market_id: object::id(market) },
         recipient
@@ -127,6 +129,7 @@ public fun mint_demo_price_cap(
 
 public fun set_demo_price(market: &mut Market, cap: &DemoPriceCap, new_price: u64, clock: &Clock){
     assert!(cap.market_id == object::id(market), EWrongMarketForCap);
+    assert_manual_price_market(market);
     market.mock_price = new_price;
     market.last_price_update_ms = clock::timestamp_ms(clock);
 }
