@@ -12,7 +12,7 @@ import {
   useMintCap,
   useMintUsdc,
 } from '../hooks/useAdminActions.ts'
-import { formatUsdc, formatPrice, toUsdcRaw } from '@/lib/format.ts'
+import { formatUsdc, formatPrice, toUsdcRaw, toPriceRaw } from '@/lib/format.ts'
 import './AdminPanel.css'
 
 export function AdminPanel() {
@@ -49,7 +49,7 @@ export function AdminPanel() {
   }
 
   const treasuryBalance = treasury.data ? BigInt(treasury.data.balance as string) : undefined
-  const priceRaw = price === '' ? 0n : BigInt(Math.floor(Number(price) || 0))
+  const priceRaw = toPriceRaw(price)
   const priceCapId = roles.riskCapId ?? roles.demoPriceCapId
   const usesDemoCap = roles.riskCapId === undefined && roles.demoPriceCapId !== undefined
 
@@ -81,26 +81,55 @@ export function AdminPanel() {
         {priceCapId && market?.demoMode && (
           <div className="admin-card">
             <h3>Mark price</h3>
-            <p className="card-meta">
-              Current: <code>{formatPrice(market.mockPrice)}</code>
-              {usesDemoCap && <span className="via"> via DemoPriceCap</span>}
-            </p>
-            <label className="field">
-              <span>New price</span>
-              <input value={price} onChange={(e) => setPrice(e.target.value)} inputMode="numeric" />
-            </label>
-            <button
-              type="button"
-              className="submit"
-              disabled={priceRaw <= 0n || setMockPrice.isPending || setDemoPrice.isPending}
-              onClick={() => {
-                const params = { capId: priceCapId, price: priceRaw }
-                if (usesDemoCap) setDemoPrice.mutate(params)
-                else setMockPrice.mutate(params)
-              }}
-            >
-              {setMockPrice.isPending || setDemoPrice.isPending ? 'Confirm...' : 'Set price'}
-            </button>
+            {market.usesSignedPrice ? (
+              <>
+                <p className="card-meta">
+                  Disabled — this market takes its price from a signed keeper report, so the
+                  trading entrypoints never read <code>mock_price</code> and writing it here would
+                  change nothing on chain. The manual-price entrypoints themselves abort with{' '}
+                  <code>ENotManualPriceMarket</code> (10) while a signer is set.
+                </p>
+                <p className="card-meta">
+                  Signer: <code className="signer">{market.priceSignerHex}</code>
+                </p>
+                <button type="button" className="submit" disabled>
+                  Set price
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="card-meta">
+                  Current: <code>${formatPrice(market.mockPrice)}</code>
+                  {usesDemoCap && <span className="via"> via DemoPriceCap</span>}
+                </p>
+                <label className="field">
+                  <span>New price (USD)</span>
+                  <input
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    inputMode="decimal"
+                    placeholder="81508.03"
+                  />
+                  <small>
+                    {priceRaw > 0n
+                      ? `Sent on chain as ${priceRaw.toString()}`
+                      : 'Enter dollars, e.g. 81508.03'}
+                  </small>
+                </label>
+                <button
+                  type="button"
+                  className="submit"
+                  disabled={priceRaw <= 0n || setMockPrice.isPending || setDemoPrice.isPending}
+                  onClick={() => {
+                    const params = { capId: priceCapId, price: priceRaw }
+                    if (usesDemoCap) setDemoPrice.mutate(params)
+                    else setMockPrice.mutate(params)
+                  }}
+                >
+                  {setMockPrice.isPending || setDemoPrice.isPending ? 'Confirm...' : 'Set price'}
+                </button>
+              </>
+            )}
           </div>
         )}
 

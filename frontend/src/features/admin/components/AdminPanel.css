@@ -70,3 +70,8 @@
 .submit.danger {
   background: #dc2626;
 }
+
+.signer {
+  word-break: break-all;
+  font-size: 11px;
+}
