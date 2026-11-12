@@ -15,10 +15,25 @@ export function PositionList() {
   const stalenessWindowMs = market ? Number(market.maxPriceStalenessSecs) * 1000 : undefined
   const signed = useSignedPrice(signedMode, stalenessWindowMs)
 
-  if (isPending) return <p className="muted">Loading positions...</p>
   if (!market) return null
-  if (!positions || positions.length === 0) {
-    return <p className="muted">No open positions.</p>
+
+  if (isPending || !positions || positions.length === 0) {
+    return (
+      <section className="positions">
+        <h2>Your positions</h2>
+        <div className="positions-empty">
+          <p className="muted">
+            {isPending ? 'Loading positions...' : 'No open positions yet.'}
+          </p>
+          {!isPending && (
+            <p className="hint">
+              An open position appears here with live PnL and its margin ratio against the{' '}
+              {Number(market.maintenanceMarginBps) / 100}% maintenance floor.
+            </p>
+          )}
+        </div>
+      </section>
+    )
   }
 
   const marketState: OnChainMarket = {
@@ -30,16 +45,18 @@ export function PositionList() {
     cumulativeFundingShortCredit: BigInt(market.cumulativeFundingShortCredit),
   }
   const markPrice = signedMode ? signed.report?.price : BigInt(market.mockPrice)
+  const closeBlockedReason = market.paused
+    ? 'The market is paused. Liquidation and funding keep running, but closes are rejected on chain.'
+    : signed.blockedReason
   const maintenancePct = Number(market.maintenanceMarginBps) / 100
 
   return (
     <section className="positions">
       <h2>Your positions</h2>
 
-      {signedMode && markPrice === undefined && (
-        <p className="error">
-          {signed.error?.message ??
-            'Waiting for the signed price feed. PnL and closing both need a fresh signed report.'}
+      {closeBlockedReason && (
+        <p className="feed-banner">
+          <strong>Closing unavailable.</strong> {closeBlockedReason}
         </p>
       )}
 
@@ -66,18 +83,18 @@ export function PositionList() {
             return (
               <tr key={p.id}>
                 <td>
-                  <span className={p.isLong ? 'side-long' : 'side-short'}>
+                  <span className={p.isLong ? 'pos-side-long' : 'pos-side-short'}>
                     {p.isLong ? 'Long' : 'Short'}
                   </span>
                 </td>
                 <td className="num">${formatUsdc(p.size)}</td>
                 <td className="num">${formatUsdc(p.collateral)}</td>
                 <td className="num">{formatPrice(p.entryPrice)}</td>
-                <td className="num">{markPrice === undefined ? '—' : formatPrice(markPrice)}</td>
+                <td className="num">{markPrice === undefined ? '--' : formatPrice(markPrice)}</td>
                 {health === undefined ? (
                   <>
-                    <td className="num">—</td>
-                    <td className="num">—</td>
+                    <td className="num">--</td>
+                    <td className="num">--</td>
                   </>
                 ) : (
                   <>
@@ -101,7 +118,8 @@ export function PositionList() {
                   <button
                     type="button"
                     className="close-btn"
-                    disabled={closePosition.isPending || (signedMode && markPrice === undefined)}
+                    disabled={closePosition.isPending || closeBlockedReason !== undefined}
+                    title={closeBlockedReason}
                     onClick={() => closePosition.mutate({ positionId: p.id })}
                   >
                     {closePosition.isPending ? '...' : 'Close'}
