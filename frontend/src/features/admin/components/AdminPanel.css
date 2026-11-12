@@ -1,59 +1,95 @@
 .admin {
-  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .role-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 14px;
 }
 
 .enforcement-note {
-  margin: 14px 0 20px;
+  margin: 0;
+  max-width: 76ch;
   font-size: 12px;
   line-height: 1.5;
   color: var(--text);
 }
 
-.admin-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+.admin-body {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
   gap: 16px;
 }
 
-.admin-card {
-  padding: 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+.admin-params {
+  flex: 999 1 520px;
+  min-width: 0;
 }
 
-.admin-card h3 {
-  margin: 0 0 8px;
-  font-size: 14px;
+.admin-rail {
+  flex: 0 1 400px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.card-meta {
-  margin: 0 0 14px;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--text);
+.card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
 }
 
-.card-meta code {
-  font-family: var(--mono);
+.card-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.state-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.state-label {
+  flex-grow: 1;
+  font-size: 13px;
   color: var(--text-h);
 }
 
-.card-meta strong {
-  color: var(--text-h);
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  width: 40px;
+  height: 22px;
+  padding: 2px;
+  background: var(--border-strong);
+  border-radius: 11px;
 }
 
-.via {
-  opacity: 0.7;
+.toggle-on {
+  justify-content: flex-end;
+  background: var(--long);
+}
+
+.toggle-knob {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg);
 }
 
 .signer {
   word-break: break-all;
   font-size: 11px;
+  color: var(--text-dim);
 }
