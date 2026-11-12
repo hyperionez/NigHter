@@ -8,11 +8,11 @@
 .app-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
   flex-wrap: wrap;
-  padding: 0 24px;
+  gap: 20px;
+  padding: 10px 20px;
   min-height: 56px;
+  box-sizing: border-box;
   border-bottom: 1px solid var(--border);
 }
 
@@ -21,47 +21,6 @@
   font-weight: 600;
   letter-spacing: -0.015em;
   margin: 0;
-}
-
-.app-main {
-  flex: 1;
-  padding: 24px;
-  text-align: left;
-}
-
-.connected-address {
-  font-family: var(--mono);
-  font-size: 13px;
-  color: var(--text);
-}
-
-.connect-hint {
-  color: var(--text);
-}
-
-.trading-area {
-  display: flex;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 24px;
-}
-
-.trading-area > .open-position {
-  flex: 0 1 340px;
-  min-width: 0;
-}
-
-.trading-area > .positions {
-  flex: 999 1 460px;
-  min-width: 0;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 28px;
-  flex-wrap: wrap;
 }
 
 .brand-lockup {
@@ -98,4 +57,35 @@
 .tab-active:hover {
   color: var(--accent-ink);
   font-weight: 600;
+}
+
+.app-main {
+  flex: 1;
+  padding: 16px;
+  text-align: left;
+}
+
+.trading-layout {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.trade-rail {
+  flex: 0 1 320px;
+  min-width: 0;
+}
+
+.trade-main {
+  flex: 999 1 560px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.connected-address {
+  font-size: 13px;
+  color: var(--text);
 }

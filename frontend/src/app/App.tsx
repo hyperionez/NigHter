@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useCurrentAccount } from '@mysten/dapp-kit-react'
 import { ConnectButton } from '@mysten/dapp-kit-react/ui'
 import { MarketDashboard } from '@/features/market/components/MarketDashboard.tsx'
+import { MarketTicker } from '@/features/market/components/MarketTicker.tsx'
+import { PriceChart } from '@/features/market/components/PriceChart.tsx'
 import { OpenPositionForm } from '@/features/trading/components/OpenPositionForm.tsx'
 import { PositionList } from '@/features/trading/components/PositionList.tsx'
 import { LiquidityPanel } from '@/features/liquidity/components/LiquidityPanel.tsx'
@@ -35,40 +37,52 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <div className="brand">
-          <span className="brand-lockup">
-            <BrandMark size={20} />
-            <h1>NigHter</h1>
-          </span>
-          <nav className="tabs">
-            {tabs.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                className={active === t.id ? 'tab tab-active' : 'tab'}
-                onClick={() => setTab(t.id)}
-              >
-                {t.label}
-              </button>
-            ))}
-          </nav>
-        </div>
+        <span className="brand-lockup">
+          <BrandMark size={20} />
+          <h1>NigHter</h1>
+        </span>
+
+        <nav className="tabs">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className={active === t.id ? 'tab tab-active' : 'tab'}
+              onClick={() => setTab(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+
+        <MarketTicker />
+        <span className="panel-spacer" />
         <ConnectButton />
       </header>
 
       <main className="app-main">
         {active === 'trade' && (
-          <>
-            <MarketDashboard />
-            {account ? (
-              <div className="trading-area">
+          <div className="trading-layout">
+            <aside className="trade-rail">
+              {account ? (
                 <OpenPositionForm />
-                <PositionList />
-              </div>
-            ) : (
-              <p className="connect-hint">Connect a testnet wallet to trade.</p>
-            )}
-          </>
+              ) : (
+                <section className="panel panel-pad">
+                  <span className="stat-label">Open position</span>
+                  <p className="explainer">
+                    Connect a testnet wallet to trade. The market, chart and open interest below are
+                    live without one.
+                  </p>
+                </section>
+              )}
+            </aside>
+
+            <div className="trade-main">
+              <MarketDashboard />
+              <PriceChart />
+              {account && <PositionList />}
+            </div>
+          </div>
         )}
 
         {active === 'earn' && <LiquidityPanel />}
