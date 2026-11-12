@@ -26,28 +26,28 @@ export function MarketDashboard() {
     <>
       {signed.blockedReason && (
         <p className="feed-banner">
-          <strong>Signed price feed {signed.state}.</strong> {signed.blockedReason}
+          <strong>Price feed is {signed.stateLabel}.</strong> {signed.blockedReason}
           {signed.error && <span className="feed-detail">{signed.error.message}</span>}
         </p>
       )}
 
       <div className="market-bar">
         <div className="bar-cell">
-          <span className="stat-label">Mark price</span>
+          <span className="stat-label">Current price</span>
           <span className="stat-value">
             {markPrice === undefined ? '--' : `$${formatPrice(markPrice)}`}
           </span>
           {signedMode && (
             <span className={`cell-note feed-${signed.state}`}>
               <span className="feed-dot" aria-hidden="true" />
-              {signed.ageMs === undefined ? 'no report' : `${(signed.ageMs / 1000).toFixed(1)}s`}
-              <span className="feed-window">of {market.maxPriceStalenessSecs}s</span>
+              {signed.ageMs === undefined ? 'no price yet' : `${(signed.ageMs / 1000).toFixed(1)}s old`}
+              <span className="feed-window">max {market.maxPriceStalenessSecs}s</span>
             </span>
           )}
         </div>
 
         <div className="bar-cell">
-          <span className="stat-label">Open interest</span>
+          <span className="stat-label">Long vs short</span>
           <div className="oi-values">
             <span className="num-long">${formatUsdc(market.longOpenInterest)}</span>
             <span className="oi-sep">/</span>
@@ -60,17 +60,17 @@ export function MarketDashboard() {
         </div>
 
         <div className="bar-cell">
-          <span className="stat-label">Funding / 1h</span>
+          <span className="stat-label">Hourly rate</span>
           <span className="stat-value">{formatBps(market.fundingRateBpsPerHour)}</span>
         </div>
 
         <div className="bar-cell">
-          <span className="stat-label">Vault TVL</span>
+          <span className="stat-label">Pool size</span>
           <span className="stat-value">${formatUsdc(vault.balance)}</span>
         </div>
 
         <div className="bar-cell">
-          <span className="stat-label">Max leverage</span>
+          <span className="stat-label">Max multiplier</span>
           <span className="stat-value">{maxLeverageFrom(market.initialMarginBps)}x</span>
         </div>
       </div>

@@ -15,6 +15,7 @@ export interface SignedPriceState {
   isPending: boolean
   error: Error | undefined
   state: PriceFeedState
+  stateLabel: string
   blockedReason: string | undefined
 }
 
@@ -54,12 +55,30 @@ export function useSignedPrice(enabled: boolean, stalenessWindowMs?: number): Si
 
   const blockedReason =
     state === 'unavailable'
-      ? 'The price service is unreachable, so no signed report can be attached to a transaction.'
+      ? 'The price service is not responding, so no fresh price can be attached to a trade.'
       : state === 'stale'
-        ? 'The latest signed report is past the staleness window, so the chain would reject it.'
+        ? 'The latest price is older than this market allows, so the chain would turn the trade down.'
         : state === 'loading'
-          ? 'Waiting for the first signed price report.'
+          ? 'Waiting for the first price update.'
           : undefined
 
-  return { report, ageMs, isStale, isPending: enabled && query.isPending, error, state, blockedReason }
+  const stateLabel =
+    state === 'unavailable'
+      ? 'not responding'
+      : state === 'stale'
+        ? 'out of date'
+        : state === 'loading'
+          ? 'starting up'
+          : state
+
+  return {
+    report,
+    ageMs,
+    isStale,
+    isPending: enabled && query.isPending,
+    error,
+    state,
+    stateLabel,
+    blockedReason,
+  }
 }

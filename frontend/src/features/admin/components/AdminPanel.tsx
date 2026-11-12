@@ -53,8 +53,8 @@ export function AdminPanel() {
   const [capRecipient, setCapRecipient] = useState('')
   const [faucetAmount, setFaucetAmount] = useState('1000')
 
-  if (!account) return <p className="muted">Connect a wallet to see your operator roles.</p>
-  if (isPending) return <p className="muted">Checking roles...</p>
+  if (!account) return <p className="muted">Connect a wallet to see what you are allowed to do here.</p>
+  if (isPending) return <p className="muted">Checking what this wallet can do...</p>
 
   const anyRole =
     roles.isAdmin || roles.isRiskOperator || roles.isTreasurer || roles.isPriceOperator || roles.isFaucetOperator
@@ -62,8 +62,8 @@ export function AdminPanel() {
   if (!anyRole) {
     return (
       <p className="muted">
-        This wallet holds no operator capability for the current package. Roles are proven by
-        owning a capability object, so nothing here applies to it.
+        This wallet holds none of the roles for this deployment. A role is proven by holding a
+        specific object, so nothing on this page applies to it.
       </p>
     )
   }
@@ -89,25 +89,24 @@ export function AdminPanel() {
     <section className="admin">
       <div className="role-badges">
         {roles.isAdmin && <span className="badge badge-admin">Admin</span>}
-        {roles.isRiskOperator && <span className="badge">Risk operator</span>}
-        {roles.isTreasurer && <span className="badge">Treasurer</span>}
-        {roles.isPriceOperator && <span className="badge">Price operator</span>}
-        {roles.isFaucetOperator && <span className="badge">Faucet</span>}
+        {roles.isRiskOperator && <span className="badge">Can switch trading</span>}
+        {roles.isTreasurer && <span className="badge">Can move the insurance fund</span>}
+        {roles.isPriceOperator && <span className="badge">Can set the price</span>}
+        {roles.isFaucetOperator && <span className="badge">Can mint test money</span>}
       </div>
 
       <p className="enforcement-note">
-        These controls are hidden when the matching capability is absent, which is a convenience
-        only. Authorization is enforced on chain by the Move package; a hidden button is not a
-        security boundary.
+        Controls you do not have the role for are hidden, which is only to keep this page tidy.
+        The real check happens on chain: a hidden button is not what stops anyone.
       </p>
 
       <div className="admin-body">
         <section className="panel admin-params">
           <div className="panel-head">
-            <span className="panel-title">Market parameters</span>
+            <span className="panel-title">Market settings</span>
             <span className="panel-meta">BTC-PERP-DEMO</span>
             <span className="panel-spacer" />
-            <span className="panel-meta">fixed at creation</span>
+            <span className="panel-meta">set once, cannot be changed</span>
           </div>
 
           {market && (
@@ -115,46 +114,46 @@ export function AdminPanel() {
               <table className="data-table">
                 <tbody>
                   <tr>
-                    <td className="key">Initial margin</td>
+                    <td className="key">Minimum to open <span className="panel-meta">initial margin</span></td>
                     <td className="num">
                       {market.initialMarginBps} bps{' '}
                       <span className="panel-meta">({maxLeverageFrom(market.initialMarginBps)}x max)</span>
                     </td>
                   </tr>
                   <tr>
-                    <td className="key">Maintenance margin</td>
+                    <td className="key">Auto-close level <span className="panel-meta">maintenance margin</span></td>
                     <td className="num">{market.maintenanceMarginBps} bps</td>
                   </tr>
                   <tr>
-                    <td className="key">Open / close fee</td>
+                    <td className="key">Opening / closing fee</td>
                     <td className="num">{market.openFeeBps} / {market.closeFeeBps} bps</td>
                   </tr>
                   <tr>
-                    <td className="key">Max open interest</td>
+                    <td className="key">Largest total trade size</td>
                     <td className="num">{formatUsdc(market.maxOpenInterest)}</td>
                   </tr>
                   <tr>
-                    <td className="key">Min position size</td>
+                    <td className="key">Smallest trade size</td>
                     <td className="num">{formatUsdc(market.minPositionSize)}</td>
                   </tr>
                   <tr>
-                    <td className="key">Funding rate</td>
+                    <td className="key">Hourly rate between sides</td>
                     <td className="num">{market.fundingRateBpsPerHour} bps / hour</td>
                   </tr>
                   <tr>
-                    <td className="key">Liquidation penalty</td>
+                    <td className="key">Auto-close penalty</td>
                     <td className="num">{formatBps(market.liquidationPenaltyBps)}</td>
                   </tr>
                   <tr>
-                    <td className="key">Keeper reward</td>
+                    <td className="key">Reward for closing a losing trade</td>
                     <td className="num">{formatBps(market.keeperRewardBps)}</td>
                   </tr>
                   <tr>
-                    <td className="key">Max price staleness</td>
+                    <td className="key">Price must be newer than</td>
                     <td className="num">{market.maxPriceStalenessSecs} s</td>
                   </tr>
                   <tr>
-                    <td className="key">Price signer</td>
+                    <td className="key">Who signs the price</td>
                     <td className="num signer">
                       {market.usesSignedPrice ? market.priceSignerHex : 'not set (manual)'}
                     </td>
@@ -165,22 +164,20 @@ export function AdminPanel() {
           )}
 
           <div className="panel-note">
-            Every value above is fixed when the market is created and cannot be changed by any
-            capability. Only the price signer can be rotated, with <code>set_price_signer</code>{' '}
-            under AdminCap.
+            Everything above is decided when the market is created and no role can change it
+            afterwards. The only exception is who signs the price, which an admin can swap out.
           </div>
         </section>
 
         <div className="admin-rail">
           {priceCapId && market?.demoMode && (
-            <Card title="Mark price" cap={usesDemoCap ? 'DemoPriceCap' : 'RiskCap'}>
+            <Card title="Price" cap={usesDemoCap ? 'DemoPriceCap' : 'RiskCap'}>
               {market.usesSignedPrice ? (
                 <>
                   <p className="explainer">
-                    Disabled: this market takes its price from a signed keeper report, so the
-                    trading entrypoints never read <code>mock_price</code> and writing it here
-                    would change nothing on chain. The manual-price entrypoints themselves abort
-                    with <code>ENotManualPriceMarket</code> (10) while a signer is set.
+                    Switched off: this market takes its price from the signed feed, so nothing here
+                    would reach a trade. The chain turns down a hand-set price while a signer is in
+                    place.
                   </p>
                   <button type="button" className="submit" disabled>
                     Set price
@@ -227,10 +224,10 @@ export function AdminPanel() {
 
                   <span className="explainer">
                     {priceAgeSecs === undefined
-                      ? 'This market records no price timestamp yet.'
+                      ? 'This market does not record when the price was last set.'
                       : `Last set ${priceAgeSecs}s ago.`}{' '}
-                    Trading aborts once this passes {market.maxPriceStalenessSecs}s, so a market
-                    left unattended stops accepting orders rather than trading on a dead number.
+                    Trading stops once this passes {market.maxPriceStalenessSecs}s, so a market left
+                    alone turns trades down instead of running on a price nobody has touched.
                   </span>
                 </>
               )}
@@ -238,9 +235,9 @@ export function AdminPanel() {
           )}
 
           {roles.riskCapId && (
-            <Card title="Market state" cap="RiskCap">
+            <Card title="Trading switch" cap="RiskCap">
               <div className="state-row">
-                <span className="state-label">Trading enabled</span>
+                <span className="state-label">{market?.paused ? 'Trading is off' : 'Trading is on'}</span>
                 <span
                   className={market?.paused ? 'toggle' : 'toggle toggle-on'}
                   role="img"
@@ -258,21 +255,21 @@ export function AdminPanel() {
                   setPaused.mutate({ riskCapId: roles.riskCapId!, paused: !market?.paused })
                 }
               >
-                {setPaused.isPending ? 'Confirm...' : market?.paused ? 'Resume market' : 'Pause market'}
+                {setPaused.isPending ? 'Confirm...' : market?.paused ? 'Switch trading on' : 'Switch trading off'}
               </button>
 
               <span className="explainer">
-                Pausing blocks opening <em>and</em> closing. Positions stay open and keep accruing
-                funding, so this is not an exit.
+                Switching trading off blocks opening <em>and</em> closing. Open trades stay open and
+                keep paying the hourly rate, so this is not a way out for anyone.
               </span>
             </Card>
           )}
 
           {roles.treasurerCapId && (
-            <Card title="Treasury" cap="TreasurerCap">
+            <Card title="Insurance fund" cap="TreasurerCap">
               <span className="stat-value stat-value-lg">{formatUsdc(treasuryBalance)}</span>
               <span className="cell-note">
-                Fees collected, minus keeper rewards paid on bad debt
+                Fees collected, minus rewards paid out when a trade went underwater
               </span>
 
               <div className="input-shell">
@@ -304,10 +301,10 @@ export function AdminPanel() {
           )}
 
           {roles.adminCapId && (
-            <Card title="Delegate a role" cap="AdminCap">
+            <Card title="Give someone a role" cap="AdminCap">
               <span className="explainer">
-                AdminCap only mints derived capabilities. It can no longer pause a market or touch
-                the treasury directly.
+                An admin can only hand out roles. It cannot switch trading off or touch the insurance
+                fund itself.
               </span>
 
               <div className="input-shell">
@@ -353,7 +350,7 @@ export function AdminPanel() {
           )}
 
           {roles.usdcTreasuryCapId && (
-            <Card title="TEST_USDC faucet" cap="TreasuryCap">
+            <Card title="Test money faucet" cap="TreasuryCap">
               <div className="input-shell">
                 <input
                   aria-label="Faucet amount"

@@ -39,7 +39,7 @@ export function MarketTicker() {
       <span className="market-pill">{MARKET_SYMBOL}</span>
 
       <span className={signedMode ? 'badge badge-signed' : 'badge'}>
-        {signedMode ? 'Signed' : 'Demo'}
+        {signedMode ? 'Live price' : 'Demo price'}
       </span>
 
       <div className="ticker-price">
@@ -57,12 +57,12 @@ export function MarketTicker() {
         {signedMode && (
           <span className={`ticker-age feed-${signed.state}`}>
             <span className="feed-dot" aria-hidden="true" />
-            {signed.ageMs === undefined ? 'no report' : `${(signed.ageMs / 1000).toFixed(0)}s`}
+            {signed.ageMs === undefined ? 'no price' : `${(signed.ageMs / 1000).toFixed(0)}s old`}
           </span>
         )}
       </div>
 
-      {market.paused && <span className="badge badge-warn">Paused</span>}
+      {market.paused && <span className="badge badge-warn">Trading off</span>}
     </div>
   )
 }

@@ -10,6 +10,7 @@ import {
   useMergeReceipts,
 } from '../hooks/useLiquidity.ts'
 import { formatUsdc, toUsdcRaw } from '@/lib/format.ts'
+import { usePrivacy } from '@/app/privacy.tsx'
 import './LiquidityPanel.css'
 
 function shortId(id: string): string {
@@ -27,13 +28,14 @@ export function LiquidityPanel() {
   const withdrawAll = useWithdrawLiquidity()
   const withdrawPart = useWithdrawPartial()
   const merge = useMergeReceipts()
+  const { mask } = usePrivacy()
 
   const [mode, setMode] = useState<'deposit' | 'withdraw'>('deposit')
   const [depositAmount, setDepositAmount] = useState('1000')
   const [withdrawShares, setWithdrawShares] = useState('')
 
-  if (!account) return <p className="muted">Connect a testnet wallet to provide liquidity.</p>
-  if (!market || !vault) return <p className="muted">Loading vault...</p>
+  if (!account) return <p className="muted">Connect a testnet wallet to put money into the pool.</p>
+  if (!market || !vault) return <p className="muted">Loading the pool...</p>
 
   const balance = BigInt(vault.balance)
   const lpSupply = BigInt(vault.lpSupply)
@@ -67,13 +69,13 @@ export function LiquidityPanel() {
         : undefined
 
   const withdrawProblem = !firstReceipt
-    ? 'You hold no LP shares yet'
+    ? 'You have not deposited anything yet'
     : sharesRaw <= 0n
       ? 'Enter a share amount'
       : sharesRaw >= firstReceipt.shares
-        ? 'Redeem the whole receipt from the table instead'
+        ? 'Take the whole deposit out from the table instead'
         : partialValue > free
-          ? `Only ${formatUsdc(free)} of the vault is free right now`
+          ? `Only ${formatUsdc(free)} of the pool is free right now`
           : undefined
 
   const pending = deposit.isPending || withdrawAll.isPending || withdrawPart.isPending
@@ -86,27 +88,27 @@ export function LiquidityPanel() {
     <section className="liquidity">
       <div className="market-bar">
         <div className="bar-cell">
-          <span className="stat-label">Vault TVL</span>
+          <span className="stat-label">Pool size</span>
           <span className="stat-value stat-value-lg">{formatUsdc(balance)}</span>
-          <span className="cell-note">USDC held by the vault</span>
+          <span className="cell-note">test dollars sitting in the pool</span>
         </div>
         <div className="bar-cell">
           <span className="stat-label">Your share</span>
-          <span className="stat-value stat-value-lg">{sharePct}%</span>
-          <span className="cell-note">{formatUsdc(myValue)} USDC at current value</span>
+          <span className="stat-value stat-value-lg">{mask(`${sharePct}%`)}</span>
+          <span className="cell-note">worth {mask(formatUsdc(myValue))} right now</span>
         </div>
         <div className="bar-cell">
-          <span className="stat-label">Free liquidity</span>
+          <span className="stat-label">Free to take out</span>
           <span className="stat-value stat-value-lg">{formatUsdc(free)}</span>
           <div className="meter" aria-hidden="true">
             <span className="meter-reserved" style={{ width: `${reservedPct}%` }} />
           </div>
-          <span className="cell-note">{reservedPct}% reserved against open positions</span>
+          <span className="cell-note">{reservedPct}% is backing open trades</span>
         </div>
         <div className="bar-cell">
-          <span className="stat-label">Backing open positions</span>
+          <span className="stat-label">Backing open trades</span>
           <span className="stat-value stat-value-lg">{formatUsdc(locked)}</span>
-          <span className="cell-note">cannot be withdrawn while they are open</span>
+          <span className="cell-note">cannot be taken out while those trades run</span>
         </div>
       </div>
 
@@ -134,7 +136,7 @@ export function LiquidityPanel() {
               <div className="field">
                 <div className="field-head">
                   <label htmlFor="lp-amount">Amount</label>
-                  <span className="field-aside">Balance {formatUsdc(walletUsdc)}</span>
+                  <span className="field-aside">Balance {mask(formatUsdc(walletUsdc))}</span>
                 </div>
                 <div className="input-shell">
                   <input
@@ -156,15 +158,15 @@ export function LiquidityPanel() {
 
               <div className="rows">
                 <div>
-                  <span>LP shares received</span>
+                  <span>Shares you get</span>
                   <span>{formatUsdc(sharesOut)}</span>
                 </div>
                 <div>
-                  <span>Share of vault after</span>
+                  <span>Your share afterwards</span>
                   <span>{shareAfterPct}%</span>
                 </div>
                 <div>
-                  <span>Share price</span>
+                  <span>Price per share</span>
                   <span>{(Number(sharePriceMilli) / 1000).toFixed(4)}</span>
                 </div>
               </div>
@@ -189,9 +191,9 @@ export function LiquidityPanel() {
             <>
               <div className="field">
                 <div className="field-head">
-                  <label htmlFor="lp-shares">Shares to redeem</label>
+                  <label htmlFor="lp-shares">Shares to cash in</label>
                   <span className="field-aside">
-                    {firstReceipt ? `Receipt holds ${formatUsdc(firstReceipt.shares)}` : 'No receipt'}
+                    {firstReceipt ? `This deposit holds ${formatUsdc(firstReceipt.shares)}` : 'Nothing deposited'}
                   </span>
                 </div>
                 <div className="input-shell">
@@ -208,11 +210,11 @@ export function LiquidityPanel() {
 
               <div className="rows">
                 <div>
-                  <span>Redeems about</span>
+                  <span>You get back about</span>
                   <span>{formatUsdc(partialValue)} USDC</span>
                 </div>
                 <div>
-                  <span>Free liquidity</span>
+                  <span>Free in the pool</span>
                   <span>{formatUsdc(free)} USDC</span>
                 </div>
               </div>
@@ -229,7 +231,7 @@ export function LiquidityPanel() {
                   })
                 }
               >
-                {withdrawPart.isPending ? 'Confirm in wallet...' : 'Redeem part of the receipt'}
+                {withdrawPart.isPending ? 'Confirm in wallet...' : 'Cash in part of it'}
               </button>
               {withdrawProblem && <p className="hint">{withdrawProblem}</p>}
 
@@ -240,31 +242,31 @@ export function LiquidityPanel() {
                   disabled={merge.isPending}
                   onClick={() => merge.mutate({ receiptIds: roles.lpReceipts.map((r) => r.id) })}
                 >
-                  {merge.isPending ? 'Confirm...' : `Merge ${roles.lpReceipts.length} receipts into one`}
+                  {merge.isPending ? 'Confirm...' : `Combine ${roles.lpReceipts.length} deposits into one`}
                 </button>
               )}
             </>
           )}
 
           <span className="explainer">
-            You are the counterparty to every trader on this market. Their profit is paid from this
-            vault and their loss is paid into it, so your share price moves against their aggregate
-            PnL.
+            You are on the other side of every trade here. When traders win, the money comes out of
+            this pool; when they lose, it goes in. So your share is worth more when traders lose and
+            less when they win.
           </span>
         </section>
 
         <section className="panel lp-receipts">
           <div className="panel-head">
-            <span className="panel-title">Your LP receipts</span>
+            <span className="panel-title">Your deposits</span>
             <span className="panel-meta">{roles.lpReceipts.length}</span>
           </div>
 
           {roles.lpReceipts.length === 0 ? (
             <div className="positions-empty">
-              <p className="muted">No LP receipt in this wallet.</p>
+              <p className="muted">Nothing deposited from this wallet yet.</p>
               <p className="hint">
-                A deposit mints one receipt. Receipts can be split and merged, so a partial
-                withdrawal never leaves a zero-share object behind.
+                Each deposit becomes its own entry here. They can be split and combined, so taking out
+                part of one never leaves an empty leftover behind.
               </p>
             </div>
           ) : (
@@ -272,9 +274,9 @@ export function LiquidityPanel() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th scope="col">Receipt</th>
+                    <th scope="col">Deposit</th>
                     <th scope="col" className="num">Shares</th>
-                    <th scope="col" className="num">Value now</th>
+                    <th scope="col" className="num">Worth now</th>
                     <th scope="col" />
                   </tr>
                 </thead>
@@ -285,8 +287,8 @@ export function LiquidityPanel() {
                     return (
                       <tr key={receipt.id}>
                         <td className="key">{shortId(receipt.id)}</td>
-                        <td className="num">{formatUsdc(receipt.shares)}</td>
-                        <td className="num num-long">{formatUsdc(value)}</td>
+                        <td className="num">{mask(formatUsdc(receipt.shares))}</td>
+                        <td className="num num-long">{mask(formatUsdc(value))}</td>
                         <td className="num">
                           <button
                             type="button"
@@ -295,7 +297,7 @@ export function LiquidityPanel() {
                             title={
                               redeemable
                                 ? undefined
-                                : 'Not enough free liquidity to redeem this receipt yet'
+                                : 'Not enough free money in the pool to take this out yet'
                             }
                             onClick={() =>
                               withdrawAll.mutate({
@@ -304,7 +306,7 @@ export function LiquidityPanel() {
                               })
                             }
                           >
-                            {withdrawAll.isPending ? '...' : 'Redeem'}
+                            {withdrawAll.isPending ? '...' : 'Take out'}
                           </button>
                         </td>
                       </tr>
@@ -317,8 +319,8 @@ export function LiquidityPanel() {
 
           {lockedReceipt && (
             <div className="panel-note">
-              A receipt cannot be redeemed right now: only {formatUsdc(free)} of the vault is free,
-              the rest is reserved against open positions. It becomes redeemable as positions close.
+              One deposit cannot be taken out right now: only {formatUsdc(free)} of the pool is free,
+              the rest is backing open trades. It frees up as those trades close.
             </div>
           )}
         </section>
