@@ -1,38 +1,11 @@
-.positions {
-  margin-top: 28px;
-}
-
-.positions h2 {
-  margin: 0 0 12px;
-  font-size: 16px;
-}
-
 .position-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
+  min-width: 700px;
 }
 
-.position-table th {
-  text-align: left;
-  font-weight: 500;
+.pos-side {
   font-size: 11px;
+  font-weight: 600;
   letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-  padding: 0 12px 8px;
-  border-bottom: 1px solid var(--border);
-}
-
-.position-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-}
-
-.position-table .num {
-  text-align: right;
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
 }
 
 .pos-side-long {
@@ -43,57 +16,33 @@
   color: var(--short);
 }
 
-.pnl-up {
-  color: var(--long);
-}
-
-.pnl-down {
-  color: var(--short);
-}
-
 .margin-cell {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
+  align-items: center;
+  gap: 8px;
 }
 
 .health-track {
-  width: 64px;
+  display: block;
+  width: 56px;
   height: 3px;
-  border-radius: 2px;
   background: var(--border);
+  border-radius: 2px;
   overflow: hidden;
 }
 
 .health-bar {
-  height: 100%;
+  display: block;
+  height: 3px;
   background: var(--long);
+}
+
+.health-warn {
+  background: var(--accent-ink);
 }
 
 .health-danger {
   background: var(--short);
-}
-
-.close-btn {
-  padding: 5px 12px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--surface-raised);
-  color: var(--text-h);
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.close-btn:hover:not(:disabled) {
-  border-color: var(--short);
-  color: var(--short);
-}
-
-.close-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .positions-empty {
@@ -101,15 +50,9 @@
   flex-direction: column;
   gap: 8px;
   padding: 28px 20px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
 }
 
 .positions-empty .hint {
-  margin: 0;
-  max-width: 48ch;
-  font-size: 12px;
+  max-width: 52ch;
   line-height: 1.5;
-  color: var(--text-dim);
 }
