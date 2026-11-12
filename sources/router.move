@@ -70,7 +70,26 @@ public fun open_position_with_mock_price(
     ctx: &mut TxContext
 ) {
     assert!(market::demo_mode(market), ENotDemoMarket);
+    market::assert_mock_price_fresh(market, clock);
     let entry_price = market::mock_price(market);
+    open_position_at_price(market, vault, treasury, collateral, is_long, leverage, entry_price, clock, ctx);
+}
+
+public fun open_position_with_signed_price(
+    market: &mut Market,
+    vault: &mut Vault,
+    treasury: &mut Treasury,
+    collateral : Coin<TEST_USDC>,
+    is_long: bool,
+    leverage: u64,
+    price: u64,
+    price_timestamp_ms: u64,
+    price_signature: vector<u8>,
+    clock : &Clock,
+    ctx: &mut TxContext
+) {
+    assert!(market::demo_mode(market), ENotDemoMarket);
+    let entry_price = market::verify_signed_price(market, price, price_timestamp_ms, price_signature, clock);
     open_position_at_price(market, vault, treasury, collateral, is_long, leverage, entry_price, clock, ctx);
 }
 
@@ -167,7 +186,24 @@ public fun close_position_with_mock_price(
     ctx : &mut TxContext
 ) {
     assert!(market::demo_mode(market), ENotDemoMarket);
+    market::assert_mock_price_fresh(market, clock);
     let exit_price = market::mock_price(market);
+    close_position_at_price(market, vault, treasury, position, exit_price, clock, ctx);
+}
+
+public fun close_position_with_signed_price(
+    market: &mut Market,
+    vault: &mut Vault,
+    treasury: &mut Treasury,
+    position : Position,
+    price: u64,
+    price_timestamp_ms: u64,
+    price_signature: vector<u8>,
+    clock : &Clock,
+    ctx : &mut TxContext
+) {
+    assert!(market::demo_mode(market), ENotDemoMarket);
+    let exit_price = market::verify_signed_price(market, price, price_timestamp_ms, price_signature, clock);
     close_position_at_price(market, vault, treasury, position, exit_price, clock, ctx);
 }
 

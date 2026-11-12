@@ -33,7 +33,7 @@ fun setup(scenario: &mut ts::Scenario): Clock{
      100,
      false,
      50_000,
-     b"BTC_PERP_FEED_ID",
+     b"", b"BTC_PERP_FEED_ID",
      60,
      10,
      &clock,

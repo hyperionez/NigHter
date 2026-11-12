@@ -24,7 +24,7 @@ fun create_market_sets_all_parameters_correctly() {
     100,
     false,
     50_000,
-    b"BTC_PERP_FEED_ID",
+    b"", b"BTC_PERP_FEED_ID",
     60,
     10,
     &clock,
@@ -65,7 +65,7 @@ fun create_market_rejects_invalid_margin_config() {
     100,
     false,
     50_000,
-    b"BTC_PERP_FEED_ID",
+    b"", b"BTC_PERP_FEED_ID",
     60,
     10,
     &clock,
@@ -96,7 +96,7 @@ fun create_market_rejects_close_fee_exceeding_maintenance_margin() {
     100,
     false,
     50_000,
-    b"BTC_PERP_FEED_ID",
+    b"", b"BTC_PERP_FEED_ID",
     60,
     10,
     &clock,
@@ -122,7 +122,7 @@ fun demo_price_cap_can_move_mock_price() {
         100,
         true,
         50_000,
-        b"BTC_PERP_FEED_ID",
+        b"", b"BTC_PERP_FEED_ID",
         60, 10, &clock, 100, 50,
         scenario.ctx()
     );
@@ -138,7 +138,7 @@ fun demo_price_cap_can_move_mock_price() {
     {
         let mut market = scenario.take_shared<Market>();
         let cap = scenario.take_from_sender<DemoPriceCap>();
-        market::set_demo_price(&mut market, &cap, 61_000);
+        market::set_demo_price(&mut market, &cap, 61_000, &clock);
         assert!(market::mock_price(&market) == 61_000, 0);
         transfer::public_transfer(cap, ADMIN);
         ts::return_shared(market);
@@ -162,7 +162,7 @@ fun mint_demo_price_cap_rejects_non_demo_market() {
         100,
         false,
         50_000,
-        b"BTC_PERP_FEED_ID",
+        b"", b"BTC_PERP_FEED_ID",
         60, 10, &clock, 100, 50,
         scenario.ctx()
     );
@@ -192,7 +192,7 @@ fun set_mock_price_rejects_non_demo_market() {
         100,
         false,
         50_000,
-        b"BTC_PERP_FEED_ID",
+        b"", b"BTC_PERP_FEED_ID",
         60, 10, &clock, 100, 50,
         scenario.ctx()
     );
@@ -201,7 +201,7 @@ fun set_mock_price_rejects_non_demo_market() {
     {
         let risk_cap = admin::mint_risk_cap_for_testing(scenario.ctx());
         let mut market = scenario.take_shared<Market>();
-        market::set_mock_price(&mut market, &risk_cap, 61_000);
+        market::set_mock_price(&mut market, &risk_cap, 61_000, &clock);
         ts::return_shared(market);
         transfer::public_transfer(risk_cap, ADMIN);
     };

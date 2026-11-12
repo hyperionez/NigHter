@@ -23,7 +23,7 @@ fun create_demo_market(scenario: &mut ts::Scenario): Clock {
         1_000_000, 100,
         true,
         50_000,
-        b"BTC_PERP_FEED_ID",
+        b"", b"BTC_PERP_FEED_ID",
         60, 10, &clock, 100, 50,
         scenario.ctx()
     );
@@ -49,7 +49,7 @@ fun admin_delegates_risk_cap_to_a_separate_address() {
         let mut market = scenario.take_shared<Market>();
         market::set_paused(&mut market, &risk_cap, true);
         assert!(market::is_paused(&market), 0);
-        market::set_mock_price(&mut market, &risk_cap, 61_000);
+        market::set_mock_price(&mut market, &risk_cap, 61_000, &clock);
         assert!(market::mock_price(&market) == 61_000, 1);
         ts::return_shared(market);
         transfer::public_transfer(risk_cap, RISK_OPERATOR);

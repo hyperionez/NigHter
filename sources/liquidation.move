@@ -55,7 +55,24 @@ public fun liquidate_with_mock_price(
     ctx: &mut TxContext
 ) {
     assert!(market::demo_mode(market), ENotDemoMarket);
+    market::assert_mock_price_fresh(market, clock);
     let current_price = market::mock_price(market);
+    liquidate_at_price(market, vault, treasury, position, current_price, clock, ctx);
+}
+
+public fun liquidate_with_signed_price(
+    market: &mut Market,
+    vault: &mut Vault,
+    treasury: &mut Treasury,
+    position: Position,
+    price: u64,
+    price_timestamp_ms: u64,
+    price_signature: vector<u8>,
+    clock: &Clock,
+    ctx: &mut TxContext
+) {
+    assert!(market::demo_mode(market), ENotDemoMarket);
+    let current_price = market::verify_signed_price(market, price, price_timestamp_ms, price_signature, clock);
     liquidate_at_price(market, vault, treasury, position, current_price, clock, ctx);
 }
 

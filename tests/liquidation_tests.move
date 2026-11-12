@@ -37,7 +37,7 @@ fun setup_with_mode(scenario: &mut ts::Scenario, demo_mode: bool): Clock{
      100,
      demo_mode,
      50_000,
-     b"BTC_PERP_FEED_ID",
+     b"", b"BTC_PERP_FEED_ID",
      60,
      10,
      &clock,
@@ -465,7 +465,7 @@ fun liquidate_with_mock_price_on_demo_market(){
     {
         let risk_cap = admin::mint_risk_cap_for_testing(scenario.ctx());
         let mut market = scenario.take_shared<Market>();
-        market::set_mock_price(&mut market, &risk_cap, 46_000);
+        market::set_mock_price(&mut market, &risk_cap, 46_000, &clock);
         ts::return_shared(market);
         transfer::public_transfer(risk_cap, ADMIN);
     };
@@ -752,6 +752,50 @@ fun liquidation_frees_vault_liquidity_for_lp(){
             scenario.ctx()
         );
         assert!(vault::free_liquidity(&vault, &market) == vault::total_balance(&vault), 0);
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    sui::clock::destroy_for_testing(clock);
+    scenario.end();
+}
+
+#[test, expected_failure(abort_code = perp_dex::market::EStalePrice)]
+fun liquidate_with_mock_price_rejects_stale_price(){
+    let mut scenario = ts::begin(ADMIN);
+    let mut clock = setup_with_mode(&mut scenario, true);
+    scenario.next_tx(TRADER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let collateral = coin::mint_for_testing<TEST_USDC>(10_000, scenario.ctx());
+        router::open_position_with_mock_price(
+            &mut market, &mut vault, &mut treasury, collateral,
+            true, 10, &clock, scenario.ctx()
+        );
+        ts::return_shared(market);
+        ts::return_shared(vault);
+        ts::return_shared(treasury);
+    };
+    scenario.next_tx(ADMIN);
+    {
+        let risk_cap = admin::mint_risk_cap_for_testing(scenario.ctx());
+        let mut market = scenario.take_shared<Market>();
+        market::set_mock_price(&mut market, &risk_cap, 46_000, &clock);
+        ts::return_shared(market);
+        transfer::public_transfer(risk_cap, ADMIN);
+    };
+    sui::clock::increment_for_testing(&mut clock, 61_000);
+    scenario.next_tx(KEEPER);
+    {
+        let mut market = scenario.take_shared<Market>();
+        let mut vault = scenario.take_shared<Vault>();
+        let mut treasury = scenario.take_shared<Treasury>();
+        let position = scenario.take_shared<Position>();
+        liquidation::liquidate_with_mock_price(
+            &mut market, &mut vault, &mut treasury, position, &clock, scenario.ctx()
+        );
         ts::return_shared(market);
         ts::return_shared(vault);
         ts::return_shared(treasury);
