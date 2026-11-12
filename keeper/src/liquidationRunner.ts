@@ -1,7 +1,8 @@
 import { Transaction } from "@mysten/sui/transactions";
 import { config } from "./config.js";
 import { keeperKeypair, keeperAddress } from "./suiClient.js";
-import { fetchMarket, fetchPosition, fetchCurrentPrice } from "./chain.js";
+import { fetchMarket, fetchPosition, fetchCurrentPrice, signedPriceContext } from "./chain.js";
+import { buildSignedPriceReport } from "./priceSigner.js";
 import {
   checkLiquidatable,
   updatePriceFeeds,
@@ -9,6 +10,8 @@ import {
   fetchReferenceGasPrice,
   fetchSharedObjectInitialVersion,
   executeTransaction,
+  hexToBytes,
+  type SignedPriceReport,
 } from "@perp-dex/shared";
 import type { PositionStore } from "./positionStore.js";
 import { nextGasCoin, rememberGasCoin, forgetGasCoin } from "./gasCoin.js";
@@ -44,7 +47,7 @@ export async function runLiquidationSweep(store: PositionStore): Promise<void> {
         `< maintenance ${market.maintenanceMarginBps}bps.`
     );
 
-    if (!market.demoMode && config.priceSource !== "pyth") {
+    if (!market.usesSignedPrice && !market.demoMode && config.priceSource !== "pyth") {
       console.log(
         `[liquidation] oracle market with PRICE_SOURCE=mock - dry-run finding only. ` +
           `router/liquidation reject a mock price on an oracle market by design. See README "Price source".`
@@ -53,9 +56,14 @@ export async function runLiquidationSweep(store: PositionStore): Promise<void> {
     }
 
     try {
-      const tx = market.demoMode
-        ? await buildLiquidateWithMockPriceTransaction(tracked.positionId)
-        : await buildLiquidateTransactionWithFreshPrice(tracked.positionId);
+      const tx = market.usesSignedPrice
+        ? await buildLiquidateWithSignedPriceTransaction(
+            tracked.positionId,
+            await buildSignedPriceReport(signedPriceContext(market))
+          )
+        : market.demoMode
+          ? await buildLiquidateWithMockPriceTransaction(tracked.positionId)
+          : await buildLiquidateTransactionWithFreshPrice(tracked.positionId);
       const submitResult = await submitTransaction(tx);
       if (submitResult.status === "SUCCESS") {
         console.log(`[liquidation] SUCCESS: ${tracked.positionId} liquidated, tx ${submitResult.digest}`);
@@ -95,6 +103,48 @@ export async function buildLiquidateWithMockPriceTransaction(positionId: string)
       tx.sharedObjectRef({ objectId: config.vaultId, initialSharedVersion: vaultVersion, mutable: true }),
       tx.sharedObjectRef({ objectId: config.treasuryId, initialSharedVersion: treasuryVersion, mutable: true }),
       tx.sharedObjectRef({ objectId: positionId, initialSharedVersion: positionVersion, mutable: true }),
+      tx.sharedObjectRef({
+        objectId: CLOCK_OBJECT_ID,
+        initialSharedVersion: CLOCK_INITIAL_SHARED_VERSION,
+        mutable: false,
+      }),
+    ],
+  });
+
+  return tx;
+}
+
+export async function buildLiquidateWithSignedPriceTransaction(
+  positionId: string,
+  report: SignedPriceReport
+): Promise<Transaction> {
+  const [marketVersion, vaultVersion, treasuryVersion, positionVersion, gasPrice, gasCoin] = await Promise.all([
+    fetchSharedObjectInitialVersion(config.network, config.marketId),
+    fetchSharedObjectInitialVersion(config.network, config.vaultId),
+    fetchSharedObjectInitialVersion(config.network, config.treasuryId),
+    fetchSharedObjectInitialVersion(config.network, positionId),
+    fetchReferenceGasPrice(config.network),
+    nextGasCoin(),
+  ]);
+
+  const signatureBytes = hexToBytes(report.signature);
+
+  const tx = new Transaction();
+  tx.setSender(keeperAddress);
+  tx.setGasPrice(gasPrice);
+  tx.setGasBudget(GAS_BUDGET);
+  tx.setGasPayment([{ objectId: gasCoin.objectId, version: gasCoin.version, digest: gasCoin.digest }]);
+
+  tx.moveCall({
+    target: `${config.packageId}::liquidation::liquidate_with_signed_price`,
+    arguments: [
+      tx.sharedObjectRef({ objectId: config.marketId, initialSharedVersion: marketVersion, mutable: true }),
+      tx.sharedObjectRef({ objectId: config.vaultId, initialSharedVersion: vaultVersion, mutable: true }),
+      tx.sharedObjectRef({ objectId: config.treasuryId, initialSharedVersion: treasuryVersion, mutable: true }),
+      tx.sharedObjectRef({ objectId: positionId, initialSharedVersion: positionVersion, mutable: true }),
+      tx.pure.u64(report.price),
+      tx.pure.u64(report.timestampMs),
+      tx.pure.vector("u8", signatureBytes),
       tx.sharedObjectRef({
         objectId: CLOCK_OBJECT_ID,
         initialSharedVersion: CLOCK_INITIAL_SHARED_VERSION,
