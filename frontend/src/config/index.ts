@@ -22,3 +22,4 @@ export const config = {
 export const CLOCK_OBJECT_ID = '0x6'
 export const TEST_USDC_DECIMALS = 6
 export const PRICE_DECIMALS = 9
+export const CHART_SYMBOL = import.meta.env.VITE_CHART_SYMBOL ?? 'BTCUSDT'
