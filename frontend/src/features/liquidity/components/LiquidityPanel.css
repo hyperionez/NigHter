@@ -4,63 +4,40 @@
   gap: 16px;
 }
 
-.reserve-note {
-  margin: 0;
-  max-width: 72ch;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--text);
-}
-
-.lp-forms {
-  max-width: 760px;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+.liquidity-body {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
   gap: 16px;
 }
 
-.lp-card {
-  padding: 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+.lp-ticket {
+  flex: 0 1 380px;
+  min-width: 0;
+  gap: 16px;
 }
 
-.lp-card h3 {
-  margin: 0 0 14px;
-  font-size: 14px;
+.lp-receipts {
+  flex: 999 1 420px;
+  min-width: 0;
 }
 
-.lp-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.lp-actions .submit {
-  flex: 1;
-}
-
-.secondary {
-  padding: 10px 14px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--surface-raised);
-  color: var(--text-h);
+.max-btn {
+  height: 22px;
+  padding: 0 8px;
+  background: var(--border);
+  border: none;
+  border-radius: 4px;
+  color: var(--text);
   font: inherit;
+  font-size: 10px;
   cursor: pointer;
 }
 
-.secondary:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+.max-btn:hover {
+  color: var(--text-h);
 }
 
-.merge {
-  width: 100%;
-  margin-top: 10px;
-  font-size: 12px;
-}
-
-.warn {
-  color: var(--warn);
+.meter-reserved {
+  background: var(--accent-ink);
 }
